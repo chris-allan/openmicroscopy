@@ -55,7 +55,7 @@ from django.conf import settings
 from django.contrib.sessions.backends.cache import SessionStore
 from django.core import template_loader
 from django.core.cache import cache
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseServerError
+from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render_to_response
 from django.template import RequestContext as Context
 from django.utils import simplejson
@@ -299,7 +299,7 @@ def login(request):
         return HttpResponse(rsp)
 
 @login_required()
-def index(request, **kwargs):
+def index(request, conn, **kwargs):
     """
     The webclient home page. 
     Viewing this page doesn't perform any action. All we do here is assemble various data for display, including form for changing current group.
@@ -308,13 +308,6 @@ def index(request, **kwargs):
     template = "webclient/index/index.html"
     
     request.session['nav']['error'] = request.REQUEST.get('error')
-    
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     url = None
     try:
@@ -340,19 +333,12 @@ def index(request, **kwargs):
     return HttpResponse(rsp)
 
 @login_required()
-def index_context(request, **kwargs):
+def index_context(request, conn, **kwargs):
     """ NOT USED? TODO: remove this, url and template """
 
     template = "webclient/index/index_context.html"
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     controller = BaseIndex(conn)
-    #controller.loadData()
     
     context = {'nav':request.session['nav'], 'controller':controller}
     t = template_loader.get_template(template)
@@ -361,17 +347,11 @@ def index_context(request, **kwargs):
     return HttpResponse(rsp)
 
 @login_required()
-def index_last_imports(request, **kwargs):
+def index_last_imports(request, conn, **kwargs):
     """
     Gets the most recent imports - Used in an AJAX call by home page.
     """
     template = "webclient/index/index_last_imports.html"
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     controller = BaseIndex(conn)
     controller.loadLastAcquisitions()
@@ -383,16 +363,10 @@ def index_last_imports(request, **kwargs):
     return HttpResponse(rsp)
 
 @login_required()
-def index_most_recent(request, **kwargs):
+def index_most_recent(request, conn, **kwargs):
     """ Gets the most recent 'shares' and 'share' comments. Used by the homepage via AJAX call """
 
     template = "webclient/index/index_most_recent.html"
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     controller = BaseIndex(conn)
     controller.loadMostRecent()
@@ -404,16 +378,10 @@ def index_most_recent(request, **kwargs):
     return HttpResponse(rsp)
 
 @login_required()
-def index_tag_cloud(request, **kwargs):
+def index_tag_cloud(request, conn, **kwargs):
     """ Gets the most used Tags. Used by the homepage via AJAX call """
 
     template = "webclient/index/index_tag_cloud.html"
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     controller = BaseIndex(conn)
     controller.loadTagCloud()
@@ -425,18 +393,14 @@ def index_tag_cloud(request, **kwargs):
     return HttpResponse(rsp)
 
 @login_required()
-def change_active_group(request, **kwargs):
+def change_active_group(request, conn, **kwargs):
     """
     Changes the active group of the OMERO connection, using conn.changeActiveGroup() with 'active_group' from request.REQUEST.
     First we log out and log in again, to force closing of any processes?
     TODO: This requires usage of request.session.get('password'), which should be avoided.
     Finally this redirects to the 'url'.
     """
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
+    #TODO: we need to handle exception while changing active group faild, see #
     
     url = None
     try:
@@ -444,28 +408,6 @@ def change_active_group(request, **kwargs):
     except:
         logger.error(traceback.format_exc())
     
-    server = request.session.get('server')
-    username = request.session.get('username')
-    password = request.session.get('password')
-    ssl = request.session.get('ssl')
-    version = request.session.get('version')
-       
-    webgateway_views._session_logout(request, request.session.get('server'))
-    
-    blitz = Server.get(pk=server) 
-    request.session['server'] = blitz.id
-    request.session['host'] = blitz.host
-    request.session['port'] = blitz.port
-    request.session['username'] = username
-    request.session['password'] = password
-    request.session['ssl'] = (True, False)[request.REQUEST.get('ssl') is None]
-    request.session['shares'] = dict()
-    request.session['imageInBasket'] = set()
-    blitz_host = "%s:%s" % (blitz.host, blitz.port)
-    request.session['nav']={"error": None, "blitz": blitz_host, "menu": "start", "view": "icon", "basket": 0, "experimenter":None, 'callback':dict()}
-    
-    conn = getBlitzConnection(request, useragent="OMERO.web")
-
     active_group = request.REQUEST.get('active_group')
     if conn.changeActiveGroup(active_group):
         request.session.modified = True                
@@ -508,7 +450,7 @@ def logout(request, **kwargs):
 
 ###########################################################################
 @login_required()
-def load_template(request, menu, **kwargs):
+def load_template(request, menu, conn, **kwargs):
     """
     This view handles most of the top-level pages, as specified by 'menu' E.g. userdata, usertags, history, search etc.
     Query string 'path' that specifies an object to display in the data tree is parsed.
@@ -523,15 +465,7 @@ def load_template(request, menu, **kwargs):
     else:
         template = "webclient/%s/%s.html" % (menu,menu)
     request.session['nav']['menu'] = menu
-    
     request.session['nav']['error'] = request.REQUEST.get('error')
-    
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     url = None
     try:
@@ -612,7 +546,7 @@ def load_template(request, menu, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_data(request, o1_type=None, o1_id=None, o2_type=None, o2_id=None, o3_type=None, o3_id=None, **kwargs):
+def load_data(request, conn, o1_type=None, o1_id=None, o2_type=None, o2_id=None, o3_type=None, o3_id=None, **kwargs):
     """
     This loads data for the tree, via AJAX calls. 
     The template is specified by query string. E.g. icon, table, tree.
@@ -634,14 +568,6 @@ def load_data(request, o1_type=None, o1_id=None, o2_type=None, o2_id=None, o3_ty
         request.session['nav']['view'] = view
     else:
         view = request.session['nav']['view']
-    
-    # get connection
-    conn = None
-    try:
-        conn = kwargs["conn"]        
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     # get url to redirect. Not sure what this is used for?
     url = None
@@ -738,7 +664,7 @@ def load_data(request, o1_type=None, o1_id=None, o2_type=None, o2_id=None, o3_ty
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_searching(request, form=None, **kwargs):
+def load_searching(request, conn, form=None, **kwargs):
     """
     Handles AJAX calls to search 
     """
@@ -756,14 +682,6 @@ def load_searching(request, form=None, **kwargs):
         request.session['nav']['view'] = view
     else:
         view = request.session['nav']['view']
-    
-    # get connection
-    conn = None
-    try:
-        conn = kwargs["conn"]        
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     # get url to redirect
     url = None
@@ -830,7 +748,7 @@ def load_searching(request, form=None, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_data_by_tag(request, o_type=None, o_id=None, **kwargs):
+def load_data_by_tag(request, conn, o_type=None, o_id=None, **kwargs):
     """ 
     Loads data for the tag tree and center panel.
     Either get the P/D/I etc under tags, or the images etc under a tagged Dataset or Project.
@@ -859,14 +777,6 @@ def load_data_by_tag(request, o_type=None, o_id=None, **kwargs):
         request.session['nav']['view'] = view
     else:
         view = request.session['nav']['view']
-    
-    # get connection
-    conn = None
-    try:
-        conn = kwargs["conn"]        
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     # get url to redirect
     url = None
@@ -930,15 +840,8 @@ def load_data_by_tag(request, o_type=None, o_id=None, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def autocomplete_tags(request, **kwargs):
+def autocomplete_tags(request, conn, **kwargs):
     """ Autocomplete for tag. Not used now? TODO: remove this? """
-
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     eid = conn.getGroupFromContext().isReadOnly() and conn.getEventContext().userId or None
         
@@ -947,19 +850,13 @@ def autocomplete_tags(request, **kwargs):
     return HttpResponse(json_data, mimetype='application/javascript')
 
 @login_required()
-def open_astex_viewer(request, obj_type, obj_id, **kwargs):
+def open_astex_viewer(request, obj_type, obj_id, conn, **kwargs):
     """
     Opens the Open Astex Viewer applet, to display volume masks in a couple of formats:
     - mrc.map files that are attached to images. obj_type = 'file'
     - Convert OMERO image to mrc on the fly. obj_type = 'image_8bit' or 'image'
         In this case, we may use 'scipy' to scale the image volume. 
     """
-    conn = None
-    try:
-        conn = kwargs["conn"]        
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     # can only populate these for 'image'
     image = None
@@ -1042,20 +939,13 @@ def open_astex_viewer(request, obj_type, obj_id, **kwargs):
 
 
 @login_required()
-def load_metadata_details(request, c_type, c_id, conn, share_id=None, **kwargs):
+def load_metadata_details(request, c_type, c_id, conn=None, conn_share=None, **kwargs):
     """
     This page is the right-hand panel 'general metadata', first tab only.
     Shown for Projects, Datasets, Images, Screens, Plates, Wells, Tags etc.
     The data and annotations are loaded by the manager. Display of appropriate data is handled by the template.
     """
-
-    conn_share = None
-    try:
-        conn_share = kwargs["conn_share"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
+    
     url = None
     try:
         url = kwargs["url"]
@@ -1119,32 +1009,18 @@ def load_metadata_details(request, c_type, c_id, conn, share_id=None, **kwargs):
         context = {'nav':request.session['nav'], 'url':url, 'eContext': manager.eContext, 'manager':manager}
     else:
         context = {'nav':request.session['nav'], 'url':url, 'eContext':manager.eContext, 'manager':manager, 'form_comment':form_comment, 'index':index}
-    context['share_id'] = share_id
+    
     t = template_loader.get_template(template)
     c = Context(request,context)
     logger.debug('TEMPLATE: '+template)
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_metadata_preview(request, imageId, share_id=None, **kwargs):
+def load_metadata_preview(request, imageId, conn=None, conn_share=None, **kwargs):
     """
     This is the image 'Preview' tab for the right-hand panel. 
     Currently this doesn't do much except launch the view-port plugin using the image Id (and share Id if necessary)
     """
-    conn = None
-    try:
-        conn = kwargs["conn"]        
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
-    conn_share = None
-    try:
-        conn_share = kwargs["conn_share"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
     url = None
     try:
         url = kwargs["url"]
@@ -1175,26 +1051,11 @@ def load_metadata_preview(request, imageId, share_id=None, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_metadata_hierarchy(request, c_type, c_id, **kwargs):
+def load_metadata_hierarchy(request, c_type, c_id, conn=None, conn_share=None, **kwargs):
     """
     This loads the ancestors of the specified object and displays them in a static tree.
     Used by an AJAX call from the metadata_general panel.
     """
-
-    conn = None
-    try:
-        conn = kwargs["conn"]        
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
-    conn_share = None
-    try:
-        conn_share = kwargs["conn_share"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
     url = None
     try:
         url = kwargs["url"]
@@ -1224,25 +1085,11 @@ def load_metadata_hierarchy(request, c_type, c_id, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_metadata_acquisition(request, c_type, c_id, share_id=None, **kwargs):  
+def load_metadata_acquisition(request, c_type, c_id, conn=None, conn_share=None, **kwargs):  
     """
     The acquisition tab of the right-hand panel. Only loaded for images.
     TODO: urls regex should make sure that c_type is only 'image' OR 'well'
     """
-    conn = None
-    try:
-        conn = kwargs["conn"]        
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
-    conn_share = None
-    try:
-        conn_share = kwargs["conn_share"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
     url = None
     try:
         url = kwargs["url"]
@@ -1447,7 +1294,7 @@ def getIds(request):
     return selected
 
 
-@isUserConnected
+@login_required()
 def batch_annotate(request, conn, **kwargs):
     """
     This page gives a form for batch annotation. 
@@ -1477,7 +1324,7 @@ def batch_annotate(request, conn, **kwargs):
     return HttpResponse(t.render(c))
 
 
-@isUserConnected
+@login_required()
 def annotate_file(request, conn, **kwargs):
     """ 
     On 'POST', This handles attaching an existing file-annotation(s) and/or upload of a new file to one or more objects 
@@ -1509,8 +1356,6 @@ def annotate_file(request, conn, **kwargs):
             except AttributeError, x:
                 logger.error(traceback.format_exc())
                 return handlerInternalError(x)
-        elif o_type in ("share", "sharecomment"):
-            manager = BaseShare(conn, None, o_id)
     if manager is None:
         manager = BaseContainer(conn)
     
@@ -1548,10 +1393,16 @@ def annotate_file(request, conn, **kwargs):
     logger.debug('TEMPLATE: '+template)
     return HttpResponse(t.render(c))
     
-@isUserConnected
+@login_required()
 def annotate_comment(request, conn, **kwargs):
-    """ Handle adding Comments to one or more objects """
+    """ Handle adding Comments to one or more objects 
+    Unbound instance of Comment form not available. 
+    If the form has been submitted, a bound instance of the form 
+    is created using request.POST"""
 
+    if request.method != 'POST':
+        raise Http404("Unbound instance of form not available.")
+    
     index = int(request.REQUEST.get('index', 0))
     oids = getObjects(request, conn)
     selected = getIds(request)
@@ -1561,25 +1412,23 @@ def annotate_comment(request, conn, **kwargs):
     manager = BaseContainer(conn)
 
     # Handle form submission...
-    if request.method == 'POST':
-        form_multi = CommentAnnotationForm(initial=initial, data=request.REQUEST.copy())
-        if form_multi.is_valid():
-            # In each case below, we pass the {'object_type': [ids]} map
-            content = form_multi.cleaned_data['comment']
-            if content is not None and content != "":
-                textAnn = manager.createCommentAnnotations(content, oids, well_index=index)
-                template = "webclient/annotations/comment.html"
-                context = {'tann': textAnn}
-                
-                t = template_loader.get_template(template)
-                c = Context(request,context)
-                logger.debug('TEMPLATE: '+template)
-                return HttpResponse(t.render(c))
-        else:
-            return HttpResponse(str(form_multi.errors))      # TODO: handle invalid form error
+    form_multi = CommentAnnotationForm(initial=initial, data=request.REQUEST.copy())
+    if form_multi.is_valid():
+        # In each case below, we pass the {'object_type': [ids]} map
+        content = form_multi.cleaned_data['comment']
+        if content is not None and content != "":
+            textAnn = manager.createCommentAnnotations(content, oids, well_index=index)
+            template = "webclient/annotations/comment.html"
+            context = {'tann': textAnn}
+            
+            t = template_loader.get_template(template)
+            c = Context(request,context)
+            logger.debug('TEMPLATE: '+template)
+            return HttpResponse(t.render(c))
+    else:
+        return HttpResponse(str(form_multi.errors))      # TODO: handle invalid form error
 
-
-@isUserConnected
+@login_required()
 def annotate_tags(request, conn, **kwargs):
     """ This handles creation AND submission of Tags form, adding new AND/OR existing tags to one or more objects """
 
@@ -1649,7 +1498,7 @@ def annotate_tags(request, conn, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def manage_action_containers(request, action, o_type=None, o_id=None, **kwargs):
+def manage_action_containers(request, action, conn, o_type=None, o_id=None, **kwargs):
     """
     Handles many different actions on various objects.
     
@@ -1660,13 +1509,6 @@ def manage_action_containers(request, action, o_type=None, o_id=None, **kwargs):
     @param o_type:      "dataset", "project", "image", "screen", "plate", "acquisition", "well","comment", "file", "tag", "tagset","share", "sharecomment"
     """
     template = None
-    
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     # check menu
     menu = request.REQUEST.get("menu")
@@ -1782,7 +1624,7 @@ def manage_action_containers(request, action, o_type=None, o_id=None, **kwargs):
                 #guests = request.REQUEST['guests']
                 enable = toBoolean(form.cleaned_data['enable'])
                 host = request.build_absolute_uri(reverse("load_template", args=["public"]))
-                manager.updateShareOrDiscussion(host, request.session.get('server'), message, members, enable, expiration)
+                manager.updateShareOrDiscussion(host, conn.server_id, message, members, enable, expiration)
                 return HttpResponse("DONE")
             else:
                 template = "webclient/public/share_form.html"
@@ -1971,15 +1813,8 @@ def manage_action_containers(request, action, o_type=None, o_id=None, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def get_original_file(request, fileId, **kwargs):
+def get_original_file(request, fileId, conn, **kwargs):
     """ Returns the specified original file as an http response. Used for displaying text or png/jpeg etc files in browser """
-
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
 
     orig_file = conn.getObject("OriginalFile", fileId)
     if orig_file is None:
@@ -1996,18 +1831,11 @@ def get_original_file(request, fileId, **kwargs):
 
 
 @login_required()
-def image_as_map(request, imageId, **kwargs):
+def image_as_map(request, imageId, conn, **kwargs):
     """ Converts OMERO image into mrc.map file (using tiltpicker utils) and returns the file """
 
     from omero_ext.tiltpicker.pyami import mrc
     from numpy import dstack, zeros, int8
-
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
 
     image = conn.getObject("Image", imageId)
     if image is None:
@@ -2077,17 +1905,10 @@ def image_as_map(request, imageId, **kwargs):
 
 
 @login_required()
-def archived_files(request, iid, **kwargs):
+def archived_files(request, iid, conn, **kwargs):
     """
     Downloads the archived file(s) as a single file or as a zip (if more than one file)
     """
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
     image = conn.getObject("Image", iid)
     if image is None:
         logger.debug("Cannot download archived file becuase Image does not exist.")
@@ -2149,16 +1970,8 @@ def archived_files(request, iid, **kwargs):
     return rsp
 
 @login_required()
-def download_annotation(request, action, iid, **kwargs):
+def download_annotation(request, action, iid, conn, **kwargs):
     """ Returns the file annotation as an http response for download """
-
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-    
     ann = conn.getObject("Annotation", iid)
     if ann is None:
         return handlerInternalError("Annotation does not exist (id:%s)." % (iid))
@@ -2170,7 +1983,7 @@ def download_annotation(request, action, iid, **kwargs):
     return rsp
 
 @login_required()
-def load_public(request, share_id=None, **kwargs):
+def load_public(request, share_id=None, conn=None, conn_share=None, **kwargs):
     """ Loads data for the tree in the 'public' main page. """
 
     request.session.modified = True
@@ -2191,21 +2004,6 @@ def load_public(request, share_id=None, **kwargs):
         request.session['nav']['view'] = view
     else:
         view = request.session['nav']['view']
-
-    # get connection
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-    
-    conn_share = None
-    try:
-        conn_share = kwargs["conn_share"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Share connection is not available. Please contact your administrator.")
     
     # get url to redirect
     url = None
@@ -2247,7 +2045,7 @@ def load_public(request, share_id=None, **kwargs):
 # Basket
 
 @login_required()
-def basket_action (request, action=None, **kwargs):
+def basket_action (request, conn, action=None, **kwargs):
     """
     Various actions for creating a 'share' or 'discussion' (no images).
     
@@ -2255,15 +2053,7 @@ def basket_action (request, action=None, **kwargs):
                         'todiscuss', 'createdisc'    (form to create discussion and handling the action itself)
     """
     request.session.modified = True
-    
     request.session['nav']['menu'] = 'basket'
-    
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     url = None
     try:
@@ -2297,7 +2087,7 @@ def basket_action (request, action=None, **kwargs):
             enable = toBoolean(form.cleaned_data['enable'])
             host = request.build_absolute_uri(reverse("load_template", args=["public"]))
             share = BaseShare(conn)
-            share.createShare(host, request.session.get('server'), images, message, members, enable, expiration)
+            share.createShare(host, conn.server_id, images, message, members, enable, expiration)
             return HttpJavascriptRedirect(reverse("load_template", args=["public"])) 
         else:
             template = "webclient/basket/basket_share_action.html"
@@ -2324,7 +2114,7 @@ def basket_action (request, action=None, **kwargs):
             enable = toBoolean(form.cleaned_data['enable'])
             host = request.build_absolute_uri(reverse("load_template", args=["public"]))
             share = BaseShare(conn)
-            share.createDiscussion(host, request.session.get('server'), message, members, enable, expiration)
+            share.createDiscussion(host, conn.server_id, message, members, enable, expiration)
             return HttpJavascriptRedirect(reverse("load_template", args=["public"])) 
         else:
             template = "webclient/basket/basket_discussion_action.html"
@@ -2429,18 +2219,11 @@ def update_basket(request, **kwargs):
         return handlerInternalError("Request method error in Basket.")
 
 @login_required()
-def help(request, **kwargs):
+def help(request, conn, **kwargs):
     """ Displays help page. Includes the choosers for changing current group and current user. """
 
     template = "webclient/help.html"
     request.session.modified = True
-        
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     url = None
     try:
@@ -2459,23 +2242,15 @@ def help(request, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_calendar(request, year=None, month=None, **kwargs):
+def load_calendar(request, conn, year=None, month=None, **kwargs):
     """ 
     Loads the calendar which is displayed in the left panel of the history page. 
     Shows current month by default. Filter by experimenter 
     """
-
-    template = "webclient/history/calendar.html"
     
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-   
+    template = "webclient/history/calendar.html"
     filter_user_id = request.session.get('nav')['experimenter']
-   
+    
     if year is not None and month is not None:
         controller = BaseCalendar(conn=conn, year=year, month=month, eid=filter_user_id)
     else:
@@ -2490,17 +2265,10 @@ def load_calendar(request, year=None, month=None, **kwargs):
     return HttpResponse(t.render(c))
 
 @login_required()
-def load_history(request, year, month, day, **kwargs):
+def load_history(request, year, month, day, conn, **kwargs):
     """ The data for a particular date that is loaded into the center panel """
 
     template = "webclient/history/history_details.html"
-    
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
     
     url = None
     try:
@@ -2585,19 +2353,12 @@ def getObjectUrl(conn, obj):
 ######################
 # Activities window & Progressbar
 @login_required()
-def activities(request, **kwargs):
+def activities(request, conn, **kwargs):
     """
     Refresh callbacks (delete, scripts etc) and provide json to update Activities window & Progressbar.
     The returned json contains details for ALL callbacks in web session, regardless of their status.
     We also add counts of jobs, failures and 'in progress' to update status bar.
     """
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-
     in_progress = 0
     failure = 0
     _purgeCallback(request)
@@ -2771,290 +2532,24 @@ def activities_update (request, action, **kwargs):
 # User Photo
 
 @login_required()
-def avatar(request, oid=None, **kwargs):
+def avatar(request, conn, oid=None, **kwargs):
     """ Returns the experimenter's photo """
-
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-    
     photo = conn.getExperimenterPhoto(oid)
     return HttpResponse(photo, mimetype='image/jpeg')
 
 ####################################################################################
-# Bird's eye view
+# webgateway extention
 
 @login_required()
-def render_birds_eye_view (request, iid, size=200, share_id=None, **kwargs):
+def render_thumbnail_resize (request, size, iid, conn=None, conn_share=None, **kwargs):
     """ Delegates to webgateway, using share connection if appropriate """
-
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-
-    if conn is None:
-        raise Exception("Connection not available")
-
-    return webgateway_views.render_birds_eye_view(request, iid, size=size, conn=conn, _defcb=conn.defaultThumbnail, **kwargs)
-
-####################################################################################
-# Rendering
-
-@login_required()
-def render_thumbnail (request, iid, share_id=None, **kwargs):
-    """ Delegates to webgateway, using share connection if appropriate """
-
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-
-    return webgateway_views.render_thumbnail(request, iid, w=80, _defcb=conn.defaultThumbnail, **kwargs)
-
-@login_required()
-def render_thumbnail_resize (request, size, iid, share_id=None, **kwargs):
-    """ Delegates to webgateway, using share connection if appropriate """
-
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-    
     return webgateway_views.render_thumbnail(request, iid, w=size, _defcb=conn.defaultThumbnail, **kwargs)
 
-@login_required()
-def render_image (request, iid, z, t, share_id=None, **kwargs):
-    """ Renders the image with id {{iid}} at {{z}} and {{t}} as jpeg.
-        Many options are available from the request dict.
-    I am assuming a single Pixels object on image with imageId='iid'. May be wrong """
-
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-
-    return webgateway_views.render_image(request, iid, z, t, **kwargs)
-
-@login_required()
-def render_image_region (request, iid, z, t, server_id=None, share_id=None, conn=None, **kwargs):
-    """ Renders the image with id {{iid}} at {{z}} and {{t}} as jpeg.
-        Many options are available from the request dict.
-    I am assuming a single Pixels object on image with imageId='iid'. May be wrong """
-
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-
-    return webgateway_views.render_image_region(request, iid, z, t, server_id=None, **kwargs)
-
-@login_required()
-def plateGrid_json (request, pid, field=0, server_id=None, conn=None, **kwargs):
-    """ This view is responsible for showing well data within plate """
-    
-    conn = None
-    try:
-        conn = kwargs["conn"]
-    except:
-        logger.error(traceback.format_exc())
-        return handlerInternalError("Connection is not available. Please contact your administrator.")
-    
-    if conn is None:
-        raise Exception("Connection not available")
-    
-    def urlprefix(iid):
-        return reverse('render_thumbnail', args=(iid,))
-    kwargs['urlprefix'] = urlprefix
-    
-    return webgateway_views.plateGrid_json(request, pid, field=field, server_id=None, **kwargs)
-
-@login_required()
-def image_viewer (request, iid, share_id=None, **kwargs):
-    """ This view is responsible for showing pixel data as images. Delegates to webgateway, using share connection if appropriate """
-    
-    conn = None
-    if share_id is not None:
-        kwargs['viewport_server'] = reverse('webindex') + ("%s/" % share_id)
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        kwargs['viewport_server'] = reverse('webindex')
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-
-    return webgateway_views.full_viewer(request, iid, **kwargs)
-
-
-@login_required()
-def imageData_json (request, iid, share_id=None, **kwargs):
-    """ Get a dict with image information. Delegates to webgateway, using share connection if appropriate """
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-
-    return HttpResponse(webgateway_views.imageData_json(request, iid=iid, **kwargs), mimetype='application/javascript')
-
-@login_required()
-def render_row_plot (request, iid, z, t, y, share_id=None, w=1, **kwargs):
-    """ Plot of intenisty for a row of pixels. Delegates to webgateway, using share connection if appropriate """
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-    img = conn.getObject("Image", iid)
-
-    return webgateway_views.render_row_plot(request, iid=iid, z=z, t=t, y=y, w=w, **kwargs)
-
-@login_required()
-def render_col_plot (request, iid, z, t, x, share_id=None, w=1, **kwargs):
-    """ Plot of intenisty for a row of pixels. Delegates to webgateway, using share connection if appropriate """
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-    img = conn.getObject("Image", iid)
-
-    return webgateway_views.render_col_plot(request, iid=iid, z=z, t=t, x=x, w=w, **kwargs)
-
-@login_required()
-def render_split_channel (request, iid, z, t, share_id=None, **kwargs):
-    """ Jpeg of each channel as a separate panel. Delegates to webgateway, using share connection if appropriate """
-
-    conn = None
-    if share_id is not None:
-        try:
-            conn = kwargs["conn_share"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-    else:
-        try:
-            conn = kwargs["conn"]
-        except:
-            logger.error(traceback.format_exc())
-            return handlerInternalError("Connection is not available. Please contact your administrator.")
-         
-    if conn is None:
-        raise Exception("Connection not available")
-    img = conn.getObject("Image", iid)
-
-    return webgateway_views.render_split_channel(request, iid, z, t, **kwargs)
-
-
+####################################################################################
 # scripting service....
 @login_required()
-def list_scripts (request, **kwargs):
+def list_scripts (request, conn, **kwargs):
     """ List the available scripts - Just officical scripts for now """
-
-    conn = kwargs['conn']
-
     scriptService = conn.getScriptService()
     scripts = scriptService.getScripts()
 
@@ -3091,12 +2586,10 @@ def list_scripts (request, **kwargs):
     return render_to_response("webclient/scripts/list_scripts.html", {'scriptMenu': scriptList})
 
 @login_required()
-def script_ui(request, scriptId, **kwargs):
+def script_ui(request, scriptId, conn, **kwargs):
     """
     Generates an html form for the parameters of a defined script.
     """
-
-    conn = kwargs['conn']
     scriptService = conn.getScriptService()
 
     params = scriptService.getParams(long(scriptId))
@@ -3188,11 +2681,10 @@ def script_ui(request, scriptId, **kwargs):
         context_instance=Context(request))
 
 @login_required()
-def script_run(request, scriptId, **kwargs):
+def script_run(request, scriptId, conn, **kwargs):
     """
     Runs a script using values in a POST
     """
-    conn = kwargs['conn']
     scriptService = conn.getScriptService()
 
     inputMap = {}

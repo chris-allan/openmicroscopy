@@ -59,7 +59,10 @@ class login_required(object):
         return reverse('weblogin')
     login_url = property(get_login_url)
 
-    def prepare_share_connection(self, request, share_id):
+    def get_share_connection (self, request, conn, share_id):
+        raise NotImplementedError('login_required.get_share_connection see #8118')
+    
+    def prepare_share_connection(self, request, conn, share_id):
         """Prepares the share connection if we have a valid share ID."""
         if share_id is None:
             return None
@@ -68,7 +71,7 @@ class login_required(object):
             return None
         try:
             if share.getOwner().id != conn.getEventContext().userId:
-                return getShareConnection(request, share_id)
+                return self.get_share_connection(request, conn, share_id)
         except:
             logger.error('Error retrieving share connection.', exc_info=True)
             return None
@@ -234,7 +237,7 @@ class login_required(object):
             ctx.verify_is_group_owner(conn, kwargs.get('gid'))
 
             share_id = kwargs.get('share_id')
-            conn_share = ctx.prepare_share_connection(request, share_id)
+            conn_share = ctx.prepare_share_connection(request, conn, share_id)
             ctx.on_share_connection_prepared(request)
             kwargs['error'] = request.REQUEST.get('error')
             kwargs['conn'] = conn
