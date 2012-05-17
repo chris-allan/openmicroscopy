@@ -37,7 +37,7 @@ from webadmin.controller.experimenter import BaseExperimenter
 from webadmin.controller.group import BaseGroup
 from webadmin_test_library import WebTest, WebAdminClientTest
 
-from webadmin.custom_models import Server
+from connector import Server
 
 from django.core.urlresolvers import reverse
 

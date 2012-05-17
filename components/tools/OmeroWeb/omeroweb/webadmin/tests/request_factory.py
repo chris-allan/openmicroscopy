@@ -564,7 +564,7 @@ class Client(RequestFactory):
         }
         self.cookies[session_cookie].update(cookie_data)
         
-        from omeroweb.webadmin.custom_models import Server
+        from omeroweb.connector import Server
         blitz = Server.get(pk=request.REQUEST.get('server')) 
         request.session['server'] = blitz.id
         request.session['host'] = blitz.host

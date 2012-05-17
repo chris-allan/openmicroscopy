@@ -26,7 +26,7 @@ import omero
 from django.conf import settings
 
 from request_factory import Client
-from webadmin.custom_models import Server
+from connector import Server
 from omeroweb.webgateway import views as webgateway_views
 
 class WebTest(unittest.TestCase):
