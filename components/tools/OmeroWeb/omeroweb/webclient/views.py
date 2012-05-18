@@ -94,7 +94,7 @@ from controller.share import BaseShare
 from omeroweb.connector import Server
 
 from omeroweb.webadmin.forms import LoginForm
-from omeroweb.webadmin.webadmin_utils import _checkVersion, _isServerOn, toBoolean, upgradeCheck
+from omeroweb.webadmin.webadmin_utils import toBoolean, upgradeCheck
 
 from omeroweb.webgateway import views as webgateway_views
 
@@ -106,8 +106,6 @@ from omeroweb.connector import Connector
 from omeroweb.decorators import ConnCleaningHttpResponse
 
 logger = logging.getLogger(__name__)
-
-connectors = {}
 
 logger.info("INIT '%s'" % os.getpid())
 
@@ -131,6 +129,7 @@ def login(request):
     
     server_id = request.REQUEST.get('server')
     form = LoginForm(data=request.REQUEST.copy())
+    useragent = 'OMERO.web'
     if form.is_valid():
         username = form.cleaned_data['username']
         password = form.cleaned_data['password']
@@ -141,8 +140,8 @@ def login(request):
         
         # TODO: version check should be done on the low level, see #5983
         if server_id is not None and username is not None and password is not None \
-                and _checkVersion(*connector.lookup_host_and_port()):
-            conn = connector.create_connection('OMERO.web', username, password)
+                and connector.check_version(useragent):
+            conn = connector.create_connection(useragent, username, password)
             if conn is not None:
                 request.session['connector'] = connector
                 upgradeCheck()
@@ -160,10 +159,10 @@ def login(request):
                 error = 'Login failed.'
     
     if request.method == 'POST' and server_id is not None:
-        s = Server.get(server_id)
-        if not _isServerOn(s.host, s.port):
+        connector = Connector(server_id, True)
+        if not connector.is_server_up(useragent):
             error = "Server is not responding, please contact administrator."
-        elif not _checkVersion(s.host, s.port):
+        elif not connector.check_version(useragent):
             error = "Client version does not match server, please contact administrator."
         else:
             error = "Connection not available, please check your user name and password."
