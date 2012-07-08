@@ -144,6 +144,11 @@ def login(request):
             conn = connector.create_connection('OMERO.web', username, password)
             if conn is not None:
                 request.session['connector'] = connector
+                re = conn.createRenderingEngine()._getObj()
+                request.session['rendering_engine'] = str(re)
+                conn._proxies['rendering'].untaint()
+                logger.debug('Rendering engine: %s' % \
+                        request.session['rendering_engine'])
                 upgradeCheck()
                 
                 # do we ned to display server version ?
