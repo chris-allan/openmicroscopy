@@ -135,29 +135,13 @@ class GreyScaleStrategy extends RenderingStrategy {
         QuantumStrategy qs = 
         	renderer.getQuantumManager().getStrategyFor(channel);
         CodomainChain cc = renderer.getCodomainChain();
-        
+
         // Retrieve the planar data to render
-        
-        Plane2D plane;
-        try {
-        	performanceStats.startIO(channel);
-        	plane = PlaneFactory.createPlane(planeDef, channel, metadata, pixels);
-        	performanceStats.endIO(channel);
-		} finally
-		{
-			try
-            {
-                pixels.close();
-            } 
-            catch (IOException e)
-            {
-                log.error("Pixels could not be closed successfully.", e);
-    			throw new ResourceError(
-    					e.getMessage() + " Please check server log.");
-            }
-		}
-       
-	
+        performanceStats.startIO(channel);
+        Plane2D plane = PlaneFactory.createPlane(
+                planeDef, channel, metadata, pixels);
+        performanceStats.endIO(channel);
+
 	    // Initialize sizeX1 and sizeX2 according to the plane definition and
 	    // create the RGB buffer.
 	    initAxesSize(planeDef, metadata);

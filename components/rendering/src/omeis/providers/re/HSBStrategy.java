@@ -93,46 +93,26 @@ class HSBStrategy extends RenderingStrategy {
         ChannelBinding[] channelBindings = renderer.getChannelBindings();
         Pixels metadata = renderer.getMetadata();
         PixelBuffer pixels = renderer.getPixels();
-        List<Plane2D> wData = null;
-        try
-        {
-        	RenderingStats performanceStats = renderer.getStats();
-        	wData = new ArrayList<Plane2D>();
+        List<Plane2D> wData = new ArrayList<Plane2D>();
+        RenderingStats performanceStats = renderer.getStats();
 
-        	for (int w = 0; w < channelBindings.length; w++) {
-        		if (channelBindings[w].getActive()) {
-        			performanceStats.startIO(w);
-        			wData.add(PlaneFactory.createPlane(pDef, w, metadata, 
-        					pixels));
-        			performanceStats.endIO(w);
-        		}
-        	}
-        	Map<byte[], Integer> overlays = renderer.getOverlays();
-        	if (overlays != null)
-        	{
-        		for (byte[] overlay : overlays.keySet())
-        		{
-				ome.util.PixelData data =
-					new PixelData(PlaneFactory.BIT, ByteBuffer.wrap(overlay));
-        			wData.add(new Plane2D(pDef, metadata, data));
-        		}
-        	}
+        for (int w = 0; w < channelBindings.length; w++) {
+            if (channelBindings[w].getActive()) {
+                performanceStats.startIO(w);
+                wData.add(PlaneFactory.createPlane(pDef, w, metadata, pixels));
+                performanceStats.endIO(w);
+            }
         }
-        finally
+        Map<byte[], Integer> overlays = renderer.getOverlays();
+        if (overlays != null)
         {
-            // Make sure that the pixel buffer is cleansed properly.
-            try
+            for (byte[] overlay : overlays.keySet())
             {
-                pixels.close();
-            } 
-            catch (IOException e)
-            {
-                log.error("Pixels could not be closed successfully.", e);
-    			throw new ResourceError(
-    					e.getMessage() + " Please check server log.");
-            }        	
+                ome.util.PixelData data = new PixelData(
+                        PlaneFactory.BIT, ByteBuffer.wrap(overlay));
+                wData.add(new Plane2D(pDef, metadata, data));
+            }
         }
-
         return wData;
     }
 
