@@ -22,6 +22,8 @@
 import logging
 
 from omero import client_wrapper
+from omero.api import RenderingEnginePrx
+from omero.gateway import ProxyObjectWrapper
 from omeroweb.webadmin.custom_models import Server
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ class Connector(object):
     """
 
     def __init__(self, server_id, is_secure):
+        self.rendering_engine = None
         self.server_id = server_id
         self.is_secure = is_secure
         self.is_public = False
@@ -59,6 +62,17 @@ class Connector(object):
         connection.user = UserProxy(connection)
         connection.user.logIn()
         self.omero_session_key = connection._sessionUuid
+        if self.rendering_engine is None:
+            re = connection.createRenderingEngine()._getObj()
+            self.rendering_engine = str(re)
+            connection._proxies['rendering'].untaint()
+        else:
+            re = connection.c.ic.stringToProxy(self.rendering_engine)
+            re = RenderingEnginePrx.checkedCast(re)
+            proxy = ProxyObjectWrapper(connection, 'createRenderingEngine')
+            proxy._obj = re
+            connection._proxies['rendering'] = proxy
+        logger.debug('Rendering engine: %s' % self.rendering_engine)
         logger.debug('Successfully prepared gateway: %s' % \
                 self.omero_session_key)
         # TODO: Properly handle activating the weblitz_cache
