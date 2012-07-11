@@ -28,6 +28,10 @@ from omeroweb.webadmin.custom_models import Server
 
 logger = logging.getLogger(__name__)
 
+class UntaintableProxyObjectWrapper(ProxyObjectWrapper):
+    def taint(self):
+        pass
+
 class Connector(object):
     """
     Object which encompasses all of the logic related to a Blitz connection
@@ -70,7 +74,7 @@ class Connector(object):
         else:
             re = connection.c.ic.stringToProxy(self.rendering_engine)
             re = RenderingEnginePrx.checkedCast(re)
-            proxy = ProxyObjectWrapper(connection, 'createRenderingEngine')
+            proxy = UntaintableProxyObjectWrapper(connection, 'createRenderingEngine')
             proxy._obj = re
             connection._proxies['rendering'] = proxy
             logger.debug('Existing rendering engine: %s' % \
