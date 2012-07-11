@@ -5601,18 +5601,7 @@ class _ImageWrapper (BlitzObjectWrapper):
         ctx.setOmeroGroup(self.details.group.id.val)
         if self._conn.canBeAdmin():
             ctx.setOmeroUser(self.details.owner.id.val)
-        existing_pid = None
-        try:
-            existing_pid = re.getPixels().id.val
-            re.getRenderingDefId()
-        except omero.ApiUsageException:
-            pass
-        if pid != existing_pid:
-            logger.debug('%r != %r resetting RE.' % (pid, existing_pid))
-            re.lookupPixels(pid, ctx)
-        else:
-            logger.debug('%r == %r returning cached RE.' % (pid, existing_pid))
-            return re
+        re.lookupPixels(pid, ctx)
         if rdid is None:
             rdid = self._getRDef()
         if rdid is None:

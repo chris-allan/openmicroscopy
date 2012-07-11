@@ -23,7 +23,6 @@
 Decorators for use with OMERO.web applications.
 """
 
-import omero
 import logging
 
 from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpResponseForbidden
@@ -317,16 +316,6 @@ class login_required(object):
             connection = connector.join_connection(self.useragent)
             if connection is not None:
                 logger.debug('Connector valid, session successfully joined.')
-                re = session.get('rendering_engine')
-                if re is not None:
-                    logger.debug('Using rendering engine: %s' % re)
-                    re = connection.c.ic.stringToProxy(re)
-                    re = omero.api.RenderingEnginePrx.checkedCast(re)
-                    from omero.gateway import ProxyObjectWrapper
-                    proxy = ProxyObjectWrapper(
-                            connection, 'createRenderingEngine')
-                    proxy._obj = re
-                    connection._proxies['rendering'] = proxy
                 return connection
             # Fall through, we the session we've been asked to join may
             # be invalid and we may have other credentials as request
