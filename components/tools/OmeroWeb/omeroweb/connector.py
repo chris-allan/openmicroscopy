@@ -66,13 +66,15 @@ class Connector(object):
             re = connection.createRenderingEngine()._getObj()
             self.rendering_engine = str(re)
             connection._proxies['rendering'].untaint()
+            logger.debug('New rendering engine: %s' % self.rendering_engine)
         else:
             re = connection.c.ic.stringToProxy(self.rendering_engine)
             re = RenderingEnginePrx.checkedCast(re)
             proxy = ProxyObjectWrapper(connection, 'createRenderingEngine')
             proxy._obj = re
             connection._proxies['rendering'] = proxy
-        logger.debug('Rendering engine: %s' % self.rendering_engine)
+            logger.debug('Existing rendering engine: %s' % \
+                    self.rendering_engine)
         logger.debug('Successfully prepared gateway: %s' % \
                 self.omero_session_key)
         # TODO: Properly handle activating the weblitz_cache
