@@ -1691,18 +1691,6 @@ def su (request, user, conn=None, **kwargs):
     conn.seppuku()
     return True
 
-def get_repository(conn, klass):
-    klass = '%sPrx' % klass
-    klass = getattr(omero.grid, klass)
-    sr = conn.getSharedResources()
-    repositories = sr.repositories()
-    for index, proxy in enumerate(repositories.proxies):
-        repository = klass.checkedCast(proxy)
-        if repository is not None:
-            description = repositories.descriptions[index]
-            return (repository, description)
-    raise AttributError('Repository of type %s unavailable' % klass)
-
 @login_required()
 @jsonp
 def repositories(request, conn=None, **kwargs):
@@ -1724,8 +1712,8 @@ def repository(request, klass, conn=None, **kwargs):
     """
     Returns a repository and its root property
     """
-    repository, description = get_repository(conn, klass)
-    return dict(repository=OriginalFileWrapper(conn=conn, obj=description).simpleMarshal(),
+    repository = conn.lookupRepository(klass)
+    return dict(repository=OriginalFileWrapper(conn=conn, obj=repository.root()).simpleMarshal(),
                 root=unwrap(repository.root().path))
 
 
@@ -1737,8 +1725,8 @@ def repository_list(request, klass, filepath=None, conn=None, **kwargs):
     returns files at the top level of the repository, otherwise files within
     the specified filepath
     """
-    repository, description = get_repository(conn, klass)
-    name = OriginalFileWrapper(conn=conn, obj=description).getName()
+    repository = conn.lookupRepository(klass)
+    name = unwrap(repository.root().name)
     root = os.path.join(unwrap(repository.root().path), name)
     if filepath:
         root = os.path.join(root, filepath)
@@ -1757,8 +1745,8 @@ def repository_listfiles(request, klass, filepath=None, conn=None, **kwargs):
     If filepath is not specified, returns files at the top level of the
     repository, otherwise files within the specified filepath
     """
-    repository, description = get_repository(conn, klass)
-    name = OriginalFileWrapper(conn=conn, obj=description).getName()
+    repository = conn.lookupRepository(klass)
+    name = unwrap(repository.root().name)
     root = os.path.join(unwrap(repository.root().path), name)
     if filepath:
         root = os.path.join(root, filepath)
@@ -1781,8 +1769,8 @@ def repository_sha(request, klass, filepath, conn=None, **kwargs):
     """
     json method: Returns the sha1 checksum of the specified file
     """
-    repository, description = get_repository(conn, klass)
-    name = OriginalFileWrapper(conn=conn, obj=description).getName()
+    repository = conn.lookupRepository(klass)
+    name = unwrap(repository.root().name)
     fullpath = os.path.join(unwrap(repository.root().path), name, filepath)
 
     try:
@@ -1804,9 +1792,9 @@ def repository_root(request, klass, conn=None, **kwargs):
     """
     Returns the root and name property of a repository
     """
-    repository, description = get_repository(conn, klass)
+    repository = conn.lookupRepository(klass)
     return dict(root=unwrap(repository.root().path),
-                name=OriginalFileWrapper(conn=conn, obj=description).getName())
+                name=unwrap(repository.root().name))
 
 
 @require_POST
@@ -1816,9 +1804,9 @@ def repository_makedir(request, klass, dirpath, conn=None, **kwargs):
     """
     Creates a directory in a repository
     """
-    repository, description = get_repository(conn, klass)
+    repository = conn.lookupRepository(klass)
     root = unwrap(repository.root().path)
-    name = OriginalFileWrapper(conn=conn, obj=description).getName()
+    name = unwrap(repository.root().name)
 
     try:
         path = os.path.join(root, name, dirpath)
@@ -1852,8 +1840,8 @@ def repository_download(request, klass, filepath, conn=None, **kwargs):
     Downloads a file from a repository.  Supports the HTTP_RANGE header to
     perform partial downloads or download continuation
     """
-    repository, description = get_repository(conn, klass)
-    name = OriginalFileWrapper(conn=conn, obj=description).getName()
+    repository = conn.lookupRepository(klass)
+    name = unwrap(repository.root().name)
     fullpath = os.path.join(unwrap(repository.root().path), name, filepath)
 
     try:
@@ -1968,8 +1956,8 @@ def process_request(require_uploadId):
         @uncloak_self
         def decorated(self, request, klass, filepath, conn, **kwargs):
 
-            repository, description = get_repository(conn, klass)
-            name = OriginalFileWrapper(conn=conn, obj=description).getName()
+            repository = conn.lookupRepository(klass)
+            name = unwrap(repository.root().name)
             fullpath = os.path.join(unwrap(repository.root().path), name, filepath)
 
             objectname = os.path.basename(fullpath)

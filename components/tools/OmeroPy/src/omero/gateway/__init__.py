@@ -2181,6 +2181,26 @@ class _BlitzGateway (object):
         """
         return ProxyObjectWrapper(self, 'createExporter')
 
+    def lookupRepository (self, klass):
+        """
+        Returns reference to the first ManagedRepository.
+
+        @param klass:     The Repository class name
+        @type klass:      String
+
+        @return:    omero.grid.ManagedRepositoryPrx
+        """
+        klass = '%sPrx' % klass
+        klass = getattr(omero.grid, klass)
+        repos = self.getSharedResources().repositories().proxies
+        for proxy in repos:
+            if proxy is not None:
+                repository = omero.grid.ManagedRepositoryPrx.checkedCast(proxy)
+                if repository is not None:
+                    return repository
+        raise AttributError('Repository of type %s unavailable' % klass)
+
+
     #############################
     # Top level object fetchers #
 
