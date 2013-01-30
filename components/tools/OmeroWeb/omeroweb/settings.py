@@ -275,6 +275,12 @@ CUSTOM_SETTINGS_MAPPINGS = {
     "omero.web.webstart_title": ["WEBSTART_TITLE", "OMERO.insight", str],
     "omero.web.webstart_vendor": ["WEBSTART_VENDOR", "The Open Microscopy Environment", str],
     "omero.web.webstart_homepage": ["WEBSTART_HOMEPAGE", "http://www.openmicroscopy.org", str],
+
+    "gs.ijournal.instructions_img": ["GS_IJOURNAL_INSTRUCTIONS_IMG", '', str],
+    "gs.ijournal.site_message": ["GS_IJOURNAL_SITE_MESSAGE", '', str],
+    "gs.jcb.validate_session_url": ["GS_JCB_VALIDATE_SESSION_URL", '', str],
+    "gs.jcb.original_data_confirmation_url": ["GS_JCB_ORIGINAL_DATA_CONFIRMATION_URL", '', str],
+    "gs.jcb.fileset_url": ["GS_JCB_FILESET_URL", '', str],
 }
 
 
