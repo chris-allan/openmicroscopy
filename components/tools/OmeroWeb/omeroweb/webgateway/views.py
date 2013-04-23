@@ -13,6 +13,7 @@
 #
 # Author: Carlos Neves <carlos(at)glencoesoftware.com>
 
+
 import re
 
 import omero
@@ -53,7 +54,7 @@ from webgateway_cache import webgateway_cache, CacheBase, webgateway_tempfile
 
 cache = CacheBase()
 
-import logging, os, traceback, time, zipfile, shutil
+import logging, os, traceback, time, zipfile, shutil, zlib, struct
 
 from omeroweb.decorators import login_required, ConnCleaningHttpResponse
 from omeroweb.connector import Connector
@@ -761,7 +762,59 @@ def render_image (request, iid, z=None, t=None, conn=None, **kwargs):
         rsp['Content-Disposition'] = 'attachment; filename=%s.jpg' % (img.getName().replace(" ","_"))
     return rsp
 
+
+class ExtendedZipFile(zipfile.ZipFile):
+    def writeiter(self, filename, iterator):
+        zinfo = zipfile.ZipInfo(filename=filename,
+                            date_time=time.localtime(time.time())[:6])
+        zinfo.compress_type = self.compression
+        zinfo.external_attr = 0644 << 16
+        zinfo.flag_bits = 0x00
+        zinfo.header_offset = self.fp.tell()
+
+        zinfo.CRC = CRC = 0
+        zinfo.compress_size = compress_size = 0
+        zinfo.file_size = file_size = 0
+
+        self._writecheck(zinfo)
+        self._didModify = True
+
+        self.fp.write(zinfo.FileHeader())
+        if zinfo.compress_type == zipfile.ZIP_DEFLATED:
+            cmpr = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION, zlib.DEFLATED, -15)
+        else:
+            cmpr = None
+
+        for buf in iterator:
+            file_size = file_size + len(buf)
+            CRC = zlib.crc32(buf, CRC) & 0xffffffff
+            if cmpr:
+                buf = cmpr.compress(buf)
+                compress_size = compress_size + len(buf)
+            self.fp.write(buf)
+        if cmpr:
+            buf = cmpr.flush()
+            compress_size = compress_size + len(buf)
+            self.fp.write(buf)
+            zinfo.compress_size = compress_size
+        else:
+            zinfo.compress_size = file_size
+
+        zinfo.CRC = CRC
+        zinfo.file_size = file_size
+
+        position = self.fp.tell()
+        self.fp.seek(zinfo.header_offset + 14, 0)
+        self.fp.write(struct.pack("<LLL", zinfo.CRC, zinfo.compress_size, zinfo.file_size))
+        self.fp.seek(position, 0)
+        self.filelist.append(zinfo)
+        self.NameToInfo[zinfo.filename] = zinfo
+
+
+from memory_profiler import profile
+
 @login_required()
+@profile
 def render_ome_tiff (request, ctx, cid, conn=None, **kwargs):
     """
     Renders the OME-TIFF representation of the image(s) with id cid in ctx (i)mage,
@@ -865,19 +918,20 @@ def render_ome_tiff (request, ctx, cid, conn=None, **kwargs):
             logger.debug(fpath)
             if fobj is None:
                 fobj = StringIO()
-            zobj = zipfile.ZipFile(fobj, 'w', zipfile.ZIP_STORED)
+            zobj = ExtendedZipFile(fobj, 'w', zipfile.ZIP_STORED)
+
             for obj in imgs:
-                tiff_data = webgateway_cache.getOmeTiffImage(request, server_id, obj)
+                tiff_data = None #webgateway_cache.getOmeTiffImage(request, server_id, obj)
                 if tiff_data is None:
-                    tiff_data = obj.exportOmeTiff()
+                    size, tiff_data = obj.exportOmeTiff(bufsize=1024 * 1024)
                     if tiff_data is None:
                         continue
-                    webgateway_cache.setOmeTiffImage(request, server_id, obj, tiff_data)
+                    #webgateway_cache.setOmeTiffImage(request, server_id, obj, tiff_data)
                 # While ZIP itself doesn't have the 255 char limit for filenames, the FS where these
                 # get unarchived might, so trim names
                 fnamemax = 255 - len(str(obj.getId())) - 10 # total name len <= 255, 9 is for .ome.tiff
                 objname = obj.getName()[:fnamemax]
-                zobj.writestr(str(obj.getId()) + '-'+objname + '.ome.tiff', tiff_data)
+                zobj.writeiter(str(obj.getId()) + '-'+objname + '.ome.tiff', tiff_data)
             zobj.close()
             if fpath is None:
                 zip_data = fobj.getvalue()
