@@ -918,12 +918,23 @@ def render_ome_tiff (request, ctx, cid, conn=None, **kwargs):
             zobj = ExtendedZipFile(fobj, 'w', zipfile.ZIP_STORED)
 
             for obj in imgs:
-                tiff_data = None #webgateway_cache.getOmeTiffImage(request, server_id, obj)
+                tiff_data = webgateway_cache.getOmeTiffImage(request, server_id, obj)
                 if tiff_data is None:
                     size, tiff_data = obj.exportOmeTiff(bufsize=1024 * 1024)
                     if tiff_data is None:
                         continue
-                    #webgateway_cache.setOmeTiffImage(request, server_id, obj, tiff_data)
+                    # caching will use up the iterator...
+                    consumed = webgateway_cache.setOmeTiffImage(request, server_id, obj, tiff_data)
+                    # ...so we'll have to get it again from cache
+                    # unless caching failed or is not enabled
+                    if consumed:
+                        tiff_data = webgateway_cache.getOmeTiffImage(request, server_id, obj)
+                        if tiff_data is None:
+                            # something messed up majorly, need to recreate iterator
+                            size, tiff_data = obj.exportOmeTiff(bufsize=1024 * 1024)
+                            if tiff_data is None:
+                                # at this point, give up
+                                continue
                 # While ZIP itself doesn't have the 255 char limit for filenames, the FS where these
                 # get unarchived might, so trim names
                 fnamemax = 255 - len(str(obj.getId())) - 10 # total name len <= 255, 9 is for .ome.tiff

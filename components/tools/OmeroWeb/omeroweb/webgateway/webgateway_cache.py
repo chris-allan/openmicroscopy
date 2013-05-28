@@ -49,7 +49,16 @@ class CacheBase (object): #pragma: nocover
     def get (self, k):
         return None
 
+    def get_iter (self, k):
+        yield self.get(k)
+
     def set (self, k, v, t=0, invalidateGroup=None):
+        return False
+
+    def set_iter (self, k, v, t=0, invalidateGroup=None):
+        # Don't fall through to set() here, since it would consume the
+        # iterator.  This way, the client can detect that set_iter did
+        # not work and consume the iterator itself
         return False
 
     def delete (self, k):
@@ -119,6 +128,34 @@ class FileCache(CacheBase):
             pass
         return default
 
+    def get_iter(self, key, default=None):
+        """
+        Gets data from cache and returns it in chunks
+
+        @param key:     cache key
+        @param default: default value to return
+        @return:        cache data or default if timout has passed
+        """
+
+        try:
+            fname = self._key_to_file(key)
+            f = open(fname, 'rb')
+            if not self._check_entry(f):
+                f.close()
+                self._delete(fname)
+            else:
+                def _get_iter():
+                    while True:
+                        content = f.read(1024 * 1024)
+                        if len(content) > 0:
+                            yield content
+                        else:
+                            return
+                return _get_iter()
+        except:
+            pass
+        return default
+
     def set(self, key, value, timeout=None, invalidateGroup=None):
         """
         Adds data to cache, overwriting if already cached. 
@@ -160,6 +197,54 @@ class FileCache(CacheBase):
             f.close()
         except (IOError, OSError): #pragma: nocover
             pass
+
+    def set_iter(self, key, value, timeout=None, invalidateGroup=None):
+        """
+        Adds data to cache, overwriting if already cached.
+
+        @param key:                 Unique key for cache
+        @param value:               Value to cache - must be iteration of Strings
+        @param timeout:             Optional timeout - otherwise use default
+        @param invalidateGroup:     Not used?
+        """
+
+        if not hasattr(value, '__iter__'):
+            raise ValueError("%s not iterable, can't cache" % type(value))
+        fname = self._key_to_file(key)
+        dirname = os.path.dirname(fname)
+
+        if timeout is None:
+            timeout = self._default_timeout
+
+        if self._full():
+            # Maybe we already have this one cached, and we need the space
+            try:
+                self._delete(fname)
+            except OSError:
+                pass
+            if self._full():
+                return
+
+        # keep track of when the iterator is being consumed
+        consumed = False
+        try:
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+
+            f = open(fname, 'wb')
+            if timeout > 0:
+                exp = time.time() + timeout + (timeout / 5 * random())
+            else:
+                exp = 0
+            f.write(struct.pack('d', exp))
+            # from here on out, the iterator should be considered consumed
+            consumed = True
+            for v in value:
+                f.write(v)
+            f.close()
+        except (IOError, OSError): #pragma: nocover
+            pass
+        return consumed
 
     def delete(self, key):
         """
@@ -466,6 +551,12 @@ class WebGatewayCache (object):
         logger.debug('   set: %s' % key)
         cache.set(key, obj)
 
+    def _cache_set_iter (self, cache, key, obj):
+        """ Calls cache.set_iter(key, obj) """
+
+        logger.debug('   set: %s' % key)
+        return cache.set_iter(key, obj)
+
     def _cache_clear (self, cache, key):
         """ Calls cache.delete(key) """
         
@@ -671,15 +762,27 @@ class WebGatewayCache (object):
         return self.getImage(r, client_base, img, z, t, '-sc')
 
     def setOmeTiffImage (self, r, client_base, img, obj):
-        """ Calls L{setImage} with '-ometiff' context """
-        return self.setImage(r, client_base, img, 0, 0, obj, '-ometiff')
+        """
+        Puts image data into cache from iterator
+        Returns true if the iterator was consumed - this does not
+        necessarily mean caching was successful
+        """
+        k = self._imageKey(r, client_base, img, 0, 0) + '-ometiff'
+        return self._cache_set_iter(self._img_cache, k, obj)
 
     def getOmeTiffImage (self, r, client_base, img):
         """ 
-        Calls L{getImage} with '-ometiff' context
-        @rtype:     String
+        Gets image data from cache as iterator
+        @rtype:     iterator containing Strings
         """
-        return self.getImage(r, client_base, img, 0, 0, '-ometiff')
+        k = self._imageKey(r, client_base, img, 0, 0) + '-ometiff'
+        r = self._img_cache.get_iter(k)
+        if r is None:
+            logger.debug('  fail: %s' % k)
+        else:
+            logger.debug('cached: %s' % k)
+        return r
+
 
     ##
     # hierarchies (json)
