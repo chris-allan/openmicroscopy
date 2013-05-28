@@ -811,10 +811,7 @@ class ExtendedZipFile(zipfile.ZipFile):
         self.NameToInfo[zinfo.filename] = zinfo
 
 
-from memory_profiler import profile
-
 @login_required()
-@profile
 def render_ome_tiff (request, ctx, cid, conn=None, **kwargs):
     """
     Renders the OME-TIFF representation of the image(s) with id cid in ctx (i)mage,
