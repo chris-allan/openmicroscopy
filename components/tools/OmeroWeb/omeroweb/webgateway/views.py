@@ -864,7 +864,8 @@ def render_ome_tiff (request, ctx, cid, conn=None, **kwargs):
                 return HttpResponseRedirect(settings.STATIC_URL + 'webgateway/tfiles/' + rpath)
             logger.debug(fpath)
             if fobj is None:
-                fobj = StringIO()
+                logger.debug("Cannot create temp file for render_ome_tiff")
+                raise Http404
             zobj = zipfile.ZipFile(fobj, 'w', zipfile.ZIP_STORED)
             for obj in imgs:
                 tiff_data = webgateway_cache.getOmeTiffImage(request, server_id, obj)
@@ -879,12 +880,6 @@ def render_ome_tiff (request, ctx, cid, conn=None, **kwargs):
                 objname = obj.getName()[:fnamemax]
                 zobj.writestr(str(obj.getId()) + '-'+objname + '.ome.tiff', tiff_data)
             zobj.close()
-            if fpath is None:
-                zip_data = fobj.getvalue()
-                rsp = HttpResponse(zip_data, mimetype='application/zip')
-                rsp['Content-Disposition'] = 'attachment; filename="%s.zip"' % name
-                rsp['Content-Length'] = len(zip_data)
-                return rsp
         except:
             logger.debug(traceback.format_exc())
             raise

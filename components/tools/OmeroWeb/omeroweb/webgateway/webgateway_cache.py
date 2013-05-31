@@ -27,7 +27,7 @@ size_of_double = len(struct.pack('d',0))
 #string_type = type('')
 
 CACHE=getattr(settings, 'WEBGATEWAY_CACHE', None)
-TMPROOT=getattr(settings, 'WEBGATEWAY_TMPROOT', None)
+TMPROOT = os.path.join(CACHE, 'tmproot')
 THUMB_CACHE_TIME = 3600 # 1 hour
 THUMB_CACHE_SIZE = 20*1024 # KB == 20MB
 IMG_CACHE_TIME= 3600 # 1 hour
