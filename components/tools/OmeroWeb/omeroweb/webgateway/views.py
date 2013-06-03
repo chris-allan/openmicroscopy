@@ -862,9 +862,8 @@ def render_ome_tiff (request, ctx, cid, conn=None, **kwargs):
             fpath, rpath, fobj = webgateway_tempfile.new(name + '.zip', key=key)
             if fobj is True:
                 return HttpResponseRedirect(settings.STATIC_URL + 'webgateway/tfiles/' + rpath)
-            logger.debug(fpath)
             if fobj is None:
-                logger.debug("Cannot create temp file for render_ome_tiff")
+                logger.error("Cannot create render_ome_tiff temp file: %s" % fpath)
                 raise Http404
             zobj = zipfile.ZipFile(fobj, 'w', zipfile.ZIP_STORED)
             for obj in imgs:
