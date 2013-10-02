@@ -41,6 +41,14 @@ JSON_CACHE_TIME= 3600 # 1 hour
 JSON_CACHE_SIZE = 1*1024 # KB == 1MB
 TMPDIR_TIME = 3600 * 12 # 12 hours
 
+class CacheError(Exception):
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr("There was a problem with WebGatewayCache- %s" % self.value)
+
 class CacheBase (object): #pragma: nocover
     """
     Caching base class - extended by L{FileCache} for file-based caching.
@@ -85,10 +93,15 @@ class FileCache(CacheBase):
         self._default_timeout=timeout
         self._cache = None
         try:
+            logger.debug('Checking for Django cache "%s"' % self._cache_name)
             self._cache = get_cache(self._cache_name)
         except InvalidCacheBackendError:
+            logger.debug('InvalidCacheBackendError - checking for "default" Django cache')
             self._cache = get_cache('default')
             self._cache_name = 'default'
+        if self._cache is None:
+            logger.error('Django cache unset. Check your Django settings, was CACHE with "default" present?')
+            raise CacheError( 'Unable to obtain the cache information from Django.')
 
     def add(self, key, value, timeout=None, invalidateGroup=None):
         """
