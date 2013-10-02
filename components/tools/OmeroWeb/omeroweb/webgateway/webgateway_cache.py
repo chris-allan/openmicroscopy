@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # webgateway/webgateway_cache - web cache handler for webgateway
+#       - Rewrite to use Django's Cache system
 # 
 # Copyright (c) 2008, 2009 Glencoe Software, Inc. All rights reserved.
 # 
@@ -11,9 +12,13 @@
 # If the file is missing please request a copy by contacting
 # jason@glencoesoftware.com.
 #
-# Author: Carlos Neves <carlos(at)glencoesoftware.com>
+# Authors: Carlos Neves <carlos(at)glencoesoftware.com>
+#          Sam Hart <sam(at)glencoesoftware.com>
 
 from django.conf import settings
+from django.core.cache import get_cache
+from django.core.cache.backends.base import InvalidCacheBackendError
+from copy import copy
 import omero
 import logging
 from random import random
@@ -64,25 +69,27 @@ class FileCache(CacheBase):
     """
     _purge_holdoff = 4
 
-    def __init__(self, dir, timeout=60, max_entries=0, max_size=0):
+    def __init__(self, cache_name='default', timeout=60, max_entries=None, max_size=None):
         """
         Initialises the class. 
         
-        @param dir:         Path to directory to place cached files. 
+        @param cache_name:  The name of the cache in the settings file (if not found, use 'default')
         @param timeout:     Cache timeout in secs
-        @param max_entries: If specified, limits number of items to cache
-        @param max_size:    Maxium size of cache in KB
+        @param max_entries: DEPRECATED, no longer used
+        @param max_size:    DEPRECATED, no longer used
         """
         
         super(FileCache, self).__init__()
-        self._dir = dir
-        self._max_entries = max_entries
-        self._max_size = max_size
-        self._last_purge = 0
+        self._cache_name = cache_name
+        self._requested_cache_name = copy(cache_name)
         self._default_timeout=timeout
-        if not os.path.exists(self._dir):
-            self._createdir()
-#
+        self._cache = None
+        try:
+            self._cache = get_cache(self._cache_name)
+        except InvalidCacheBackendError:
+            self._cache = get_cache('default')
+            self._cache_name = 'default'
+
     def add(self, key, value, timeout=None, invalidateGroup=None):
         """
         Adds data to cache, returning False if already cached. Otherwise delegating to L{set}
@@ -303,15 +310,6 @@ class FileCache(CacheBase):
                 if not self._check_entry(os.path.join(p, f)):
                     count += 1
         logger.debug('purge finished, removed %d files' % count)
-
-    def _createdir(self):
-        """
-        Creates a directory for the root dir of the cache. 
-        """
-        try:
-            os.makedirs(self._dir)
-        except OSError: #pragma: nocover
-            raise EnvironmentError, "Cache directory '%s' does not exist and could not be created'" % self._dir
 
     def _key_to_file(self, key):
         """
