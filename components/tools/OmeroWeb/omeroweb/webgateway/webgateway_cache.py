@@ -3,9 +3,9 @@
 #
 # webgateway/webgateway_cache - web cache handler for webgateway
 #       - Rewrite to use Django's Cache system
-# 
+#
 # Copyright (c) 2008, 2009 Glencoe Software, Inc. All rights reserved.
-# 
+#
 # This software is distributed under the terms described by the LICENCE file
 # you can find at the root of the distribution bundle, which states you are
 # free to use it only for non commercial purposes.
@@ -54,7 +54,7 @@ class CacheBase (object): #pragma: nocover
     Caching base class - extended by L{FileCache} for file-based caching.
     Methods of this base class return None or False providing a no-caching implementation if needed
     """
-    
+
     def __init__ (self):
         """ not implemented """
         pass
@@ -73,20 +73,20 @@ class CacheBase (object): #pragma: nocover
 
 class FileCache(CacheBase):
     """
-    Implements file-based caching within the directory specified in constructor.  
+    Implements file-based caching within the directory specified in constructor.
     """
     _purge_holdoff = 4
 
     def __init__(self, cache_name='default', timeout=60, max_entries=None, max_size=None):
         """
-        Initialises the class. 
-        
+        Initialises the class.
+
         @param cache_name:  The name of the cache in the settings file (if not found, use 'default')
         @param timeout:     Cache timeout in secs
         @param max_entries: DEPRECATED, no longer used
         @param max_size:    DEPRECATED, no longer used
         """
-        
+
         super(FileCache, self).__init__()
         self._cache_name = cache_name
         self._requested_cache_name = copy(cache_name)
@@ -106,13 +106,13 @@ class FileCache(CacheBase):
     def add(self, key, value, timeout=None, invalidateGroup=None):
         """
         Adds data to cache, returning False if already cached. Otherwise delegating to L{set}
-        
+
         @param key:                 Unique key for cache
         @param value:               Value to cache - must be String
         @param timeout:             Optional timeout - otherwise use default
-        @param invalidateGroup:     Not used? 
+        @param invalidateGroup:     Not used?
         """
-        
+
         if self.has_key(key):
             return False
 
@@ -122,7 +122,7 @@ class FileCache(CacheBase):
     def get(self, key, default=None):
         """
         Gets data from cache
-        
+
         @param key:     cache key
         @param default: default value to return
         @return:        cache data or default if timout has passed
@@ -141,14 +141,14 @@ class FileCache(CacheBase):
 
     def set(self, key, value, timeout=None, invalidateGroup=None):
         """
-        Adds data to cache, overwriting if already cached. 
-        
+        Adds data to cache, overwriting if already cached.
+
         @param key:                 Unique key for cache
         @param value:               Value to cache - must be String
         @param timeout:             Optional timeout - otherwise use default
-        @param invalidateGroup:     Not used? 
+        @param invalidateGroup:     Not used?
         """
-        
+
         if not isinstance(value, StringTypes):
             raise ValueError("%s not a string, can't cache" % type(value))
         fname = self._key_to_file(key)
@@ -184,9 +184,9 @@ class FileCache(CacheBase):
     def delete(self, key):
         """
         Attempt to delete the cache data referenced by key
-        @param key:     Cache key 
+        @param key:     Cache key
         """
-        
+
         try:
             self._delete(self._key_to_file(key))
         except (IOError, OSError): #pragma: nocover
@@ -195,10 +195,10 @@ class FileCache(CacheBase):
     def _delete(self, fname):
         """
         Tries to delete the data at the specified absolute file path
-        
+
         @param fname:   File name of data to delete
         """
-        
+
         logger.debug('requested delete for "%s"' % fname)
         if os.path.isdir(fname):
             shutil.rmtree(fname, ignore_errors=True)
@@ -215,56 +215,57 @@ class FileCache(CacheBase):
 
     def wipe (self):
         """ Deletes everything in the cache """
-        
+
         shutil.rmtree(self._dir)
         self._createdir()
         return True
 
-    def _check_entry (self, fname):
-        """
-        Verifies if a specific cache entry (provided as absolute file path) is expired.
-        If expired, it gets deleted and method returns false.
-        If not expired, returns True.
+    #def _check_entry (self, fname):
+    #    """
+    #    Verifies if a specific cache entry (provided as absolute file path) is expired.
+    #    If expired, it gets deleted and method returns false.
+    #    If not expired, returns True.
 
-        If fname is a file object, fpos will advance size_of_double bytes.
-        
-        @param fname:   File path or file object
-        @rtype Boolean
-        @return True if entry is valid, False if expired
-        """
-        try:
-            if isinstance(fname, StringTypes):
-                f = open(fname, 'rb')
-                exp = struct.unpack('d',f.read(size_of_double))[0]
-            else:
-                f = None
-                exp = struct.unpack('d',fname.read(size_of_double))[0]
-            if self._default_timeout > 0 and exp > 0:
-                now = time.time()
-                if exp < now:
-                    if f is not None:
-                        f.close()
-                        self._delete(fname)
-                    return False
-                else:
-                    return True
-            return True
-        except (IOError, OSError, EOFError, struct.error): #pragma: nocover
-            return False
+    #   If fname is a file object, fpos will advance size_of_double bytes.
+
+    #    @param fname:   File path or file object
+    #    @rtype Boolean
+    #    @return True if entry is valid, False if expired
+    #    """
+    #    try:
+    #        if isinstance(fname, StringTypes):
+    #            f = open(fname, 'rb')
+    #            exp = struct.unpack('d',f.read(size_of_double))[0]
+    #        else:
+    #            f = None
+    #            exp = struct.unpack('d',fname.read(size_of_double))[0]
+    #        if self._default_timeout > 0 and exp > 0:
+    #            now = time.time()
+    #            if exp < now:
+    #                if f is not None:
+    #                    f.close()
+    #                    self._delete(fname)
+    #                return False
+    #            else:
+    #                return True
+    #        return True
+    #    except (IOError, OSError, EOFError, struct.error): #pragma: nocover
+    #        return False
 
     def has_key(self, key):
         """
         Returns true if the cache has the specified key
         @param key:     Key to look for.
-        @rtype:         Boolean
         """
-        fname = self._key_to_file(key)
-        return self._check_entry(fname)
+        t = self._cache.get_key(key)
+        if t is None:
+            return False
+        return t
 
     def _du (self):
         """
         Disk Usage count on the filesystem the cache is based at
-        
+
         @rtype: int
         @return: the current usage, in KB
         """
@@ -274,12 +275,12 @@ class FileCache(CacheBase):
         """
         Checks whether the cache is full, either because we have exceeded max number of entries or
         the cache space is full.
-        
+
         @param _on_retry:   Flag allows calling this method again after purge() without recursion
         @return:            True if cache is full
         @rtype:             Boolean
         """
-        
+
         # Check nr of entries
         if self._max_entries:
             try:
@@ -331,7 +332,7 @@ class FileCache(CacheBase):
         @return:        Path
         @rtype:         String
         """
-        
+
         if key.find('..') > 0 or key.startswith('/'):
             raise ValueError('Invalid value for cache key: "%s"' % key)
         return os.path.join(self._dir, key)
@@ -350,17 +351,17 @@ class FileCache(CacheBase):
 FN_REGEX = re.compile('[#$,|]')
 class WebGatewayCache (object):
     """
-    Caching class for webgateway. 
+    Caching class for webgateway.
     """
-    
+
     def __init__ (self, backend=None, basedir=CACHE):
         """
-        Initialises cache 
-        
+        Initialises cache
+
         @param backend:     The cache class to use for caching. E.g. L{FileCache}
-        @param basedir:     The base location for all caches. Sub-dirs created for json/ img/ thumb/ 
+        @param basedir:     The base location for all caches. Sub-dirs created for json/ img/ thumb/
         """
-        
+
         self._basedir = basedir
         self._lastlock = None
         if backend is None or basedir is None:
@@ -378,11 +379,11 @@ class WebGatewayCache (object):
     def _updateCacheSettings (self, cache, timeout=None, max_entries=None, max_size=None):
         """
         Updates the timeout, max_entries and max_size (if specified) for the given cache
-        
+
         @param cache:       Cache or caches to update.
         @type cache:        L{CacheBase} or list of caches
         """
-        
+
         if isinstance(cache, CacheBase):
             cache = (cache,)
         for c in cache:
@@ -435,9 +436,9 @@ class WebGatewayCache (object):
         Handle one event from blitz.onEventLogs.
 
         Meant to be overridden, this implementation just logs.
-        
+
         @param client_base:     TODO: docs!
-        @param e:       
+        @param e:
         """
         logger.debug('## %s#%i %s user #%i group #%i(%i)' % (e.entityType.val,
                                                              e.entityId.val,
@@ -449,11 +450,11 @@ class WebGatewayCache (object):
     def eventListener (self, client_base, events):
         """
         handle events coming our way from blitz.onEventLogs.
-        
+
         Because all processes will be listening to the same events, we use a simple file
         lock mechanism to make sure the first process to get the event will be the one
         handling things from then on.
-        
+
         @param client_base:     TODO: docs!
         @param events:
         """
@@ -465,7 +466,7 @@ class WebGatewayCache (object):
 
     def clear (self):
         """
-        Clears all the caches. 
+        Clears all the caches.
         """
         self._json_cache.wipe()
         self._img_cache.wipe()
@@ -473,25 +474,25 @@ class WebGatewayCache (object):
 
     def _cache_set (self, cache, key, obj):
         """ Calls cache.set(key, obj) """
-        
+
         logger.debug('   set: %s' % key)
         cache.set(key, obj)
 
     def _cache_clear (self, cache, key):
         """ Calls cache.delete(key) """
-        
+
         logger.debug(' clear: %s' % key)
         cache.delete(key)
 
     def invalidateObject (self, client_base, user_id, obj):
         """
         Invalidates all caches for this particular object
-        
+
         @param client_base:     The server_id
         @param user_id:         OMERO user ID to partition caching upon
         @param obj:             The object wrapper. E.g. L{omero.gateway.ImageWrapper}
         """
-        
+
         if obj.OMERO_CLASS == 'Image':
             self.clearImage(None, client_base, user_id, obj)
         else:
@@ -504,7 +505,7 @@ class WebGatewayCache (object):
     def _thumbKey (self, r, client_base, user_id, iid, size):
         """
         Generates a string key for caching the thumbnail, based on the above parameters
-        
+
         @param r:       not used
         @param client_base:     server-id, forms stem of the key
         @param user_id:         OMERO user ID to partition caching upon
@@ -521,25 +522,25 @@ class WebGatewayCache (object):
 
     def setThumb (self, r, client_base, user_id, iid, obj, size=()):
         """
-        Puts thumbnail into cache. 
-        
-        @param r:               for cache key - Not used? 
+        Puts thumbnail into cache.
+
+        @param r:               for cache key - Not used?
         @param client_base:     server_id for cache key
         @param user_id:         OMERO user ID to partition caching upon
         @param iid:             image ID for cache key
         @param obj:             Data to cache
         @param size:            Size used for cache key. Tuple
         """
-        
+
         k = self._thumbKey(r, client_base, user_id, iid, size)
         self._cache_set(self._thumb_cache, k, obj)
         return True
 
     def getThumb (self, r, client_base, user_id, iid, size=()):
         """
-        Gets thumbnail from cache. 
-        
-        @param r:               for cache key - Not used? 
+        Gets thumbnail from cache.
+
+        @param r:               for cache key - Not used?
         @param client_base:     server_id for cache key
         @param user_id:         OMERO user ID to partition caching upon
         @param iid:             image ID for cache key
@@ -547,7 +548,7 @@ class WebGatewayCache (object):
         @return:                Cached data or None
         @rtype:                 String
         """
-        
+
         k = self._thumbKey(r, client_base, user_id, iid, size)
         r = self._thumb_cache.get(k)
         if r is None:
@@ -558,9 +559,9 @@ class WebGatewayCache (object):
 
     def clearThumb (self, r, client_base, user_id, iid, size=None):
         """
-        Clears thumbnail from cache. 
-        
-        @param r:               for cache key - Not used? 
+        Clears thumbnail from cache.
+
+        @param r:               for cache key - Not used?
         @param client_base:     server_id for cache key
         @param user_id:         OMERO user ID to partition caching upon
         @param iid:             image ID for cache key
@@ -578,14 +579,14 @@ class WebGatewayCache (object):
         """
         Returns a key for caching the Image, based on parameters above, including rendering settings
         specified in the http request.
-        
+
         @param r:               http request - get rendering params 'c', 'm', 'p'
         @param client_base:     server_id for cache key
         @param img:             L{omero.gateway.ImageWrapper} for ID
         @param obj:             Data to cache
         @param size:            Size used for cache key. Tuple
         """
-        
+
         iid = img.getId()
         pre = str(iid)[:-4]
         if len(pre) == 0:
@@ -611,8 +612,8 @@ class WebGatewayCache (object):
 
     def setImage (self, r, client_base, img, z, t, obj, ctx=''):
         """
-        Puts image data into cache. 
-        
+        Puts image data into cache.
+
         @param r:               http request for cache key
         @param client_base:     server_id for cache key
         @param img:             ImageWrapper for cache key
@@ -621,15 +622,15 @@ class WebGatewayCache (object):
         @param obj:             Data to cache
         @param ctx:             Additional string for cache key
         """
-        
+
         k = self._imageKey(r, client_base, img, z, t) + ctx
         self._cache_set(self._img_cache, k, obj)
         return True
 
     def getImage (self, r, client_base, img, z, t, ctx=''):
         """
-        Gets image data from cache. 
-        
+        Gets image data from cache.
+
         @param r:               http request for cache key
         @param client_base:     server_id for cache key
         @param img:             ImageWrapper for cache key
@@ -650,9 +651,9 @@ class WebGatewayCache (object):
     def clearImage (self, r, client_base, user_id, img, skipJson=False):
         """
         Clears image data from cache using default rendering settings (r=None) T and Z indexes ( = 0).
-        TODO: Doesn't clear any data stored WITH r, t, or z specified in cache key? 
-        Also clears thumbnail (but not thumbs with size specified) and json data for this image. 
-        
+        TODO: Doesn't clear any data stored WITH r, t, or z specified in cache key?
+        Also clears thumbnail (but not thumbs with size specified) and json data for this image.
+
         @param r:               http request for cache key
         @param client_base:     server_id for cache key
         @param user_id:         OMERO user ID to partition caching upon
@@ -660,7 +661,7 @@ class WebGatewayCache (object):
         @param obj:             Data to cache
         @param rtype:           True
         """
-        
+
         k = self._imageKey(None, client_base, img)
         self._cache_clear(self._img_cache, k)
         # do the thumb too
@@ -675,7 +676,7 @@ class WebGatewayCache (object):
         return self.setImage(r, client_base, img, z, t, obj, '-sc')
 
     def getSplitChannelImage (self, r, client_base, img, z, t):
-        """ 
+        """
         Calls L{getImage} with '-sc' context
         @rtype:     String
         """
@@ -686,7 +687,7 @@ class WebGatewayCache (object):
         return self.setImage(r, client_base, img, 0, 0, obj, '-ometiff')
 
     def getOmeTiffImage (self, r, client_base, img):
-        """ 
+        """
         Calls L{getImage} with '-ometiff' context
         @rtype:     String
         """
@@ -698,7 +699,7 @@ class WebGatewayCache (object):
     def _jsonKey (self, r, client_base, obj, ctx=''):
         """
         Creates a cache key for storing json data based on params above.
-        
+
         @param r:               http request - not used
         @param client_base:     server_id
         @param obj:             ObjectWrapper
@@ -706,7 +707,7 @@ class WebGatewayCache (object):
         @return:                Cache key
         @rtype:                 String
         """
-        
+
         if obj:
             return 'json_%s/%s_%s/%s' % (client_base, obj.OMERO_CLASS, obj.id, ctx)
         else:
@@ -715,7 +716,7 @@ class WebGatewayCache (object):
     def getJson (self, r, client_base, obj, ctx=''):
         """
         Gets data from the json cache
-        
+
         @param r:               http request - not used
         @param client_base:     server_id for cache key
         @param obj:             ObjectWrapper for cache key
@@ -733,7 +734,7 @@ class WebGatewayCache (object):
     def setJson (self, r, client_base, obj, data, ctx=''):
         """
         Adds data to the json cache
-        
+
         @param r:               http request - not used
         @param client_base:     server_id for cache key
         @param obj:             ObjectWrapper for cache key
@@ -756,11 +757,11 @@ class WebGatewayCache (object):
         #logger.debug('clearjson')
         #if obj.OMERO_CLASS == 'Dataset':
         #    self.clearDatasetContents(None, client_base, obj)
-    
+
     def setDatasetContents (self, r, client_base, ds, data):
         """
         Adds data to the json cache using 'contents' as context
-        
+
         @param r:               http request - not used
         @param client_base:     server_id for cache key
         @param ds:              ObjectWrapper for cache key
@@ -772,7 +773,7 @@ class WebGatewayCache (object):
     def getDatasetContents (self, r, client_base, ds):
         """
         Gets data from the json cache using 'contents' as context
-        
+
         @param r:               http request - not used
         @param client_base:     server_id for cache key
         @param ds:              ObjectWrapper for cache key
@@ -783,13 +784,13 @@ class WebGatewayCache (object):
     def clearDatasetContents (self, r, client_base, ds):
         """
         Clears data from the json cache using 'contents' as context
-        
+
         @param r:               http request - not used
         @param client_base:     server_id for cache key
         @param ds:              ObjectWrapper for cache key
         @rtype:                 True
         """
-        
+
         k = self._jsonKey(r, client_base, ds, 'contents')
         self._cache_clear(self._json_cache, k)
         return True
@@ -798,20 +799,20 @@ webgateway_cache = WebGatewayCache(FileCache)
 
 class AutoLockFile (file):
     """ Class extends file to facilitate creation and deletion of lock file. """
-    
+
     def __init__ (self, fn, mode):
         """ creates a '.lock' file with the spicified file name and mode """
         super(AutoLockFile, self).__init__(fn, mode)
         self._lock = os.path.join(os.path.dirname(fn), '.lock')
         file(self._lock, 'a').close()
-        
+
     def __del__ (self):
         """ tries to delete the lock file """
         try:
             os.remove(self._lock)
         except:
             pass
-            
+
     def close (self):
         """ tries to delete the lock file and close the file """
         try:
@@ -822,9 +823,9 @@ class AutoLockFile (file):
 
 class WebGatewayTempFile (object):
     """
-    Class for handling creation of temporary files 
+    Class for handling creation of temporary files
     """
-    
+
     def __init__ (self, tdir=TMPROOT):
         """ Initialises class, setting the directory to be used for temp files. """
         self._dir = tdir
@@ -855,13 +856,13 @@ class WebGatewayTempFile (object):
 
     def newdir (self, key=None):
         """
-        Creates a new directory using key as the dir name, and adds a timestamp file with it's 
-        creation time. If key is not specified, use a unique key based on timestamp. 
-        
+        Creates a new directory using key as the dir name, and adds a timestamp file with it's
+        creation time. If key is not specified, use a unique key based on timestamp.
+
         @param key:     The new dir name
         @return:        Tuple of (path to new directory, key used)
         """
-        
+
         if not self._dir:
             return None, None
         self._cleanup()
@@ -888,14 +889,14 @@ class WebGatewayTempFile (object):
 
     def new (self, name, key=None):
         """
-        Creates a new directory if needed, see L{newdir} and checks whether this contains a file 'name'. If not, a 
-        file lock is created for this location and returned. 
-        
-        @param name:    Name of file we want to create. 
+        Creates a new directory if needed, see L{newdir} and checks whether this contains a file 'name'. If not, a
+        file lock is created for this location and returned.
+
+        @param name:    Name of file we want to create.
         @param key:     The new dir name
         @return:        Tuple of (abs path to new directory, relative path key/name, L{AutoFileLock} or True if exists)
         """
-        
+
         if not self._dir:
             return None, None, None
         dn, stamp = self.newdir(key)
