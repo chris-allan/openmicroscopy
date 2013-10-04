@@ -387,35 +387,35 @@ class WebGatewayCache (object):
             logger.error('Django cache unset. Check your Django settings, was CACHE with "default" present?')
             raise CacheError( 'Unable to obtain the cache information from Django.')
 
-    def _updateCacheSettings (self, cache, timeout=None, max_entries=None, max_size=None):
-        """
-        Updates the timeout, max_entries and max_size (if specified) for the given cache
+    #def _updateCacheSettings (self, cache, timeout=None, max_entries=None, max_size=None):
+    #    """
+    #    Updates the timeout, max_entries and max_size (if specified) for the given cache
 
-        @param cache:       Cache or caches to update.
-        @type cache:        L{CacheBase} or list of caches
-        """
+    #    @param cache:       Cache or caches to update.
+    #    @type cache:        L{CacheBase} or list of caches
+    #    """
 
-        if isinstance(cache, CacheBase):
-            cache = (cache,)
-        for c in cache:
-            if timeout is not None:
-                c._default_timeout = timeout
-            if max_entries is not None:
-                c._max_entries = max_entries
-            if max_size is not None:
-                c._max_size = max_size
+    #    if isinstance(cache, CacheBase):
+    #        cache = (cache,)
+    #    for c in cache:
+    #        if timeout is not None:
+    #            c._default_timeout = timeout
+    #        if max_entries is not None:
+    #            c._max_entries = max_entries
+    #        if max_size is not None:
+    #            c._max_size = max_size
 
-    def __del__ (self):
-        """
-        Tries to remove the lock on this cache.
-        """
-        if self._lastlock:
-            try:
-                logger.debug('removing cache lock file on __del__')
-                os.remove(self._lastlock)
-            except:
-                pass
-            self._lastlock = None
+    #def __del__ (self):
+    #    """
+    #    Tries to remove the lock on this cache.
+    #    """
+    #    if self._lastlock:
+    #        try:
+    #            logger.debug('removing cache lock file on __del__')
+    #            os.remove(self._lastlock)
+    #        except:
+    #            pass
+    #        self._lastlock = None
 
     def tryLock (self):
         """
