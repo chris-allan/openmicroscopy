@@ -354,27 +354,38 @@ class WebGatewayCache (object):
     Caching class for webgateway.
     """
 
-    def __init__ (self, backend=None, basedir=CACHE):
+    def __init__ (self):
         """
         Initialises cache
-
-        @param backend:     The cache class to use for caching. E.g. L{FileCache}
-        @param basedir:     The base location for all caches. Sub-dirs created for json/ img/ thumb/
         """
 
-        self._basedir = basedir
-        self._lastlock = None
-        if backend is None or basedir is None:
-            self._json_cache = CacheBase()
-            self._img_cache = CacheBase()
-            self._thumb_cache = CacheBase()
-        else:
-            self._json_cache = backend(dir=os.path.join(basedir,'json'),
-                                      timeout=JSON_CACHE_TIME, max_entries=0, max_size=JSON_CACHE_SIZE)
-            self._img_cache = backend(dir=os.path.join(basedir,'img'),
-                                      timeout=IMG_CACHE_TIME, max_entries=0, max_size=IMG_CACHE_SIZE)
-            self._thumb_cache = backend(dir=os.path.join(basedir,'thumb'),
-                                        timeout=THUMB_CACHE_TIME, max_entries=0, max_size=THUMB_CACHE_SIZE)
+        self._json_cache_name = getattr(settings, 'omero.web.json', 'default')
+        self._img_cache_name = getattr(settings, 'omero.web.image', 'default')
+        self._thumb_cache_name = getattr(settings, 'omero.web.thumbnail', 'default')
+
+        self._json_cache = self._get_cache(self._json_cache_name)
+        self._img_cache = self._get_cache(self._img_cache_name)
+        self._thumb_cache = self._get_cache(self._thumb_cache_name)
+
+    def _get_cahce(cache_name):
+        """
+        Returns the cache requested by name. If the cache requested does not
+        exist, will do the next most sensible thing- return the 'default'
+        cache.
+
+        @param _cache_name  The name of the cache in the settings
+        @return             The cache as detailed above
+        """
+        cache = None
+        try:
+            logger.debug('Checking for Django cache "%s"' % cache_name)
+            cache = get_cache(cache_name)
+        except InvalidCacheBackendError:
+            logger.debug('InvalidCacheBackendError - checking for "default" Django cache')
+            cache = get_cache('default')
+        if self._cache is None:
+            logger.error('Django cache unset. Check your Django settings, was CACHE with "default" present?')
+            raise CacheError( 'Unable to obtain the cache information from Django.')
 
     def _updateCacheSettings (self, cache, timeout=None, max_entries=None, max_size=None):
         """
