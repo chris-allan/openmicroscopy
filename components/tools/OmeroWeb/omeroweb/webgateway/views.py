@@ -49,9 +49,9 @@ import settings
 
 #from models import StoredConnection
 
-from webgateway_cache import webgateway_cache, CacheBase, webgateway_tempfile
+from webgateway_cache import webgateway_cache #, CacheBase, webgateway_tempfile
 
-cache = CacheBase()
+#cache = CacheBase()
 
 import logging, os, traceback, time, zipfile, shutil
 

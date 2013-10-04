@@ -513,23 +513,23 @@ class WebGatewayCache (object):
     ##
     # Thumb
 
-    def _thumbKey (self, r, client_base, user_id, iid, size):
-        """
-        Generates a string key for caching the thumbnail, based on the above parameters
+    #def _thumbKey (self, r, client_base, user_id, iid, size):
+    #    """
+    #    Generates a string key for caching the thumbnail, based on the above parameters
 
-        @param r:       not used
-        @param client_base:     server-id, forms stem of the key
-        @param user_id:         OMERO user ID to partition caching upon
-        @param iid:             image ID
-        @param size:            size of the thumbnail - tuple. E.g. (100,)
-        """
-        pre = str(iid)[:-4]
-        if len(pre) == 0:
-            pre = '0'
-        if size is not None and len(size):
-            return 'thumb_user_%s/%s/%s/%s/%s' % (client_base, pre, str(iid), user_id, 'x'.join([str(x) for x in size]))
-        else:
-            return 'thumb_user_%s/%s/%s/%s' % (client_base, pre, str(iid), user_id)
+    #    @param r:       not used
+    #    @param client_base:     server-id, forms stem of the key
+    #    @param user_id:         OMERO user ID to partition caching upon
+    #    @param iid:             image ID
+    #    @param size:            size of the thumbnail - tuple. E.g. (100,)
+    #    """
+    #    pre = str(iid)[:-4]
+    #    if len(pre) == 0:
+    #        pre = '0'
+    #    if size is not None and len(size):
+    #        return 'thumb_user_%s/%s/%s/%s/%s' % (client_base, pre, str(iid), user_id, 'x'.join([str(x) for x in size]))
+    #    else:
+    #        return 'thumb_user_%s/%s/%s/%s' % (client_base, pre, str(iid), user_id)
 
     def setThumb (self, r, client_base, user_id, iid, obj, size=()):
         """
@@ -586,40 +586,40 @@ class WebGatewayCache (object):
     ##
     # Image
 
-    def _imageKey (self, r, client_base, img, z=0, t=0):
-        """
-        Returns a key for caching the Image, based on parameters above, including rendering settings
-        specified in the http request.
+    #def _imageKey (self, r, client_base, img, z=0, t=0):
+    #    """
+    #    Returns a key for caching the Image, based on parameters above, including rendering settings
+    #    specified in the http request.
 
-        @param r:               http request - get rendering params 'c', 'm', 'p'
-        @param client_base:     server_id for cache key
-        @param img:             L{omero.gateway.ImageWrapper} for ID
-        @param obj:             Data to cache
-        @param size:            Size used for cache key. Tuple
-        """
+    #    @param r:               http request - get rendering params 'c', 'm', 'p'
+    #    @param client_base:     server_id for cache key
+    #    @param img:             L{omero.gateway.ImageWrapper} for ID
+    #    @param obj:             Data to cache
+    #    @param size:            Size used for cache key. Tuple
+    #    """
 
-        iid = img.getId()
-        pre = str(iid)[:-4]
-        if len(pre) == 0:
-            pre = '0'
-        if r:
-            r = r.REQUEST
-            c = FN_REGEX.sub('-',r.get('c', ''))
-            m = r.get('m', '')
-            p = r.get('p', '')
-            if p and not isinstance(omero.gateway.ImageWrapper.PROJECTIONS.get(p, -1),
-                                    omero.constants.projection.ProjectionType): #pragma: nocover
-                p = ''
-            q = r.get('q', '')
-            region = r.get('region', '')
-            tile = r.get('tile', '')
-            rv = 'img_%s/%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (client_base, pre, str(iid), c, m, q, region, tile)
-            if p:
-                return rv % ('%s-%s' % (p, str(t)))
-            else:
-                return rv % ('%sx%s' % (str(z), str(t)))
-        else:
-            return 'img_%s/%s/%s' % (client_base, pre, str(iid))
+    #    iid = img.getId()
+    #    pre = str(iid)[:-4]
+    #    if len(pre) == 0:
+    #        pre = '0'
+    #    if r:
+    #        r = r.REQUEST
+    #        c = FN_REGEX.sub('-',r.get('c', ''))
+    #        m = r.get('m', '')
+    #        p = r.get('p', '')
+    #        if p and not isinstance(omero.gateway.ImageWrapper.PROJECTIONS.get(p, -1),
+    #                                omero.constants.projection.ProjectionType): #pragma: nocover
+    #            p = ''
+    #        q = r.get('q', '')
+    #        region = r.get('region', '')
+    #        tile = r.get('tile', '')
+    #        rv = 'img_%s/%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (client_base, pre, str(iid), c, m, q, region, tile)
+    #        if p:
+    #            return rv % ('%s-%s' % (p, str(t)))
+    #        else:
+    #            return rv % ('%sx%s' % (str(z), str(t)))
+    #    else:
+    #        return 'img_%s/%s/%s' % (client_base, pre, str(iid))
 
     def setImage (self, r, client_base, img, z, t, obj, ctx=''):
         """
@@ -707,22 +707,22 @@ class WebGatewayCache (object):
     ##
     # hierarchies (json)
 
-    def _jsonKey (self, r, client_base, obj, ctx=''):
-        """
-        Creates a cache key for storing json data based on params above.
+    #def _jsonKey (self, r, client_base, obj, ctx=''):
+    #    """
+    #    Creates a cache key for storing json data based on params above.
 
-        @param r:               http request - not used
-        @param client_base:     server_id
-        @param obj:             ObjectWrapper
-        @param ctx:             Additional string for cache key
-        @return:                Cache key
-        @rtype:                 String
-        """
+    #    @param r:               http request - not used
+    #    @param client_base:     server_id
+    #    @param obj:             ObjectWrapper
+    #    @param ctx:             Additional string for cache key
+    #    @return:                Cache key
+    #    @rtype:                 String
+    #    """
 
-        if obj:
-            return 'json_%s/%s_%s/%s' % (client_base, obj.OMERO_CLASS, obj.id, ctx)
-        else:
-            return 'json_%s/single/%s' % (client_base, ctx)
+    #    if obj:
+    #        return 'json_%s/%s_%s/%s' % (client_base, obj.OMERO_CLASS, obj.id, ctx)
+    #    else:
+    #        return 'json_%s/single/%s' % (client_base, ctx)
 
     def getJson (self, r, client_base, obj, ctx=''):
         """
@@ -806,7 +806,8 @@ class WebGatewayCache (object):
         self._cache_clear(self._json_cache, k)
         return True
 
-webgateway_cache = WebGatewayCache(FileCache)
+#webgateway_cache = WebGatewayCache(FileCache)
+webgateway_cache = WebGatewayCache()
 
 class AutoLockFile (file):
     """ Class extends file to facilitate creation and deletion of lock file. """
