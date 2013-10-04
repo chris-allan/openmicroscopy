@@ -31,15 +31,15 @@ import struct, time, os, re, shutil, stat
 size_of_double = len(struct.pack('d',0))
 #string_type = type('')
 
-CACHE=getattr(settings, 'WEBGATEWAY_CACHE', None)
-TMPROOT=getattr(settings, 'WEBGATEWAY_TMPROOT', None)
-THUMB_CACHE_TIME = 3600 # 1 hour
-THUMB_CACHE_SIZE = 20*1024 # KB == 20MB
-IMG_CACHE_TIME= 3600 # 1 hour
-IMG_CACHE_SIZE = 512*1024 # KB == 512MB
-JSON_CACHE_TIME= 3600 # 1 hour
-JSON_CACHE_SIZE = 1*1024 # KB == 1MB
-TMPDIR_TIME = 3600 * 12 # 12 hours
+#CACHE=getattr(settings, 'WEBGATEWAY_CACHE', None)
+#TMPROOT=getattr(settings, 'WEBGATEWAY_TMPROOT', None)
+#THUMB_CACHE_TIME = 3600 # 1 hour
+#THUMB_CACHE_SIZE = 20*1024 # KB == 20MB
+#IMG_CACHE_TIME= 3600 # 1 hour
+#IMG_CACHE_SIZE = 512*1024 # KB == 512MB
+#JSON_CACHE_TIME= 3600 # 1 hour
+#JSON_CACHE_SIZE = 1*1024 # KB == 1MB
+#TMPDIR_TIME = 3600 * 12 # 12 hours
 
 class CacheError(Exception):
 
@@ -127,17 +127,20 @@ class FileCache(CacheBase):
         @param default: default value to return
         @return:        cache data or default if timout has passed
         """
-        fname = self._key_to_file(key)
-        try:
-            f = open(fname, 'rb')
-            if not self._check_entry(f):
-                f.close()
-                self._delete(fname)
-            else:
-                return f.read()
-        except (IOError, OSError, EOFError, struct.error):
-            pass
-        return default
+        #fname = self._key_to_file(key)
+        #try:
+        #    f = open(fname, 'rb')
+        #    if not self._check_entry(f):
+        #        f.close()
+        #        self._delete(fname)
+        #    else:
+        #        return f.read()
+        #except (IOError, OSError, EOFError, struct.error):
+        #    pass
+        t = self._cache.get_key(key)
+        if t is None:
+            return default
+        return t
 
     def set(self, key, value, timeout=None, invalidateGroup=None):
         """
@@ -151,35 +154,35 @@ class FileCache(CacheBase):
 
         if not isinstance(value, StringTypes):
             raise ValueError("%s not a string, can't cache" % type(value))
-        fname = self._key_to_file(key)
-        dirname = os.path.dirname(fname)
+        #fname = self._key_to_file(key)
+        #dirname = os.path.dirname(fname)
 
-        if timeout is None:
-            timeout = self._default_timeout
+        #if timeout is None:
+        #    timeout = self._default_timeout
 
-        if self._full():
-            # Maybe we already have this one cached, and we need the space
-            try:
-                self._delete(fname)
-            except OSError:
-                pass
-            if self._full():
-                return
+        #if self._full():
+        #    # Maybe we already have this one cached, and we need the space
+        #    try:
+        #        self._delete(fname)
+        #    except OSError:
+        #        pass
+        #    if self._full():
+        #        return
 
-        try:
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
+        #try:
+        #    if not os.path.exists(dirname):
+        #        os.makedirs(dirname)
 
-            f = open(fname, 'wb')
-            if timeout > 0:
-                exp = time.time() + timeout + (timeout / 5 * random())
-            else:
-                exp = 0
-            f.write(struct.pack('d', exp))
-            f.write(value)
-            f.close()
-        except (IOError, OSError): #pragma: nocover
-            pass
+        #    f = open(fname, 'wb')
+        #    if timeout > 0:
+        #        exp = time.time() + timeout + (timeout / 5 * random())
+        #    else:
+        #        exp = 0
+        #    f.write(struct.pack('d', exp))
+        #    f.write(value)
+        #    f.close()
+        #except (IOError, OSError): #pragma: nocover
+        #    pass
 
     def delete(self, key):
         """
@@ -187,31 +190,28 @@ class FileCache(CacheBase):
         @param key:     Cache key
         """
 
-        try:
-            self._delete(self._key_to_file(key))
-        except (IOError, OSError): #pragma: nocover
-            pass
+        self._cache.delete(key)
 
-    def _delete(self, fname):
-        """
-        Tries to delete the data at the specified absolute file path
+    #def _delete(self, fname):
+    #    """
+    #    Tries to delete the data at the specified absolute file path
 
-        @param fname:   File name of data to delete
-        """
+    #    @param fname:   File name of data to delete
+    #    """
 
-        logger.debug('requested delete for "%s"' % fname)
-        if os.path.isdir(fname):
-            shutil.rmtree(fname, ignore_errors=True)
-        else:
-            os.remove(fname)
-            try:
-                # Remove the parent subdirs if they're empty
-                dirname = os.path.dirname(fname)
-                while dirname != self._dir:
-                    os.rmdir(dirname)
-                    dirname = os.path.dirname(fname)
-            except (IOError, OSError):
-                pass
+    #    logger.debug('requested delete for "%s"' % fname)
+    #    if os.path.isdir(fname):
+    #        shutil.rmtree(fname, ignore_errors=True)
+    #    else:
+    #        os.remove(fname)
+    #        try:
+    #            # Remove the parent subdirs if they're empty
+    #            dirname = os.path.dirname(fname)
+    #            while dirname != self._dir:
+    #                os.rmdir(dirname)
+    #                dirname = os.path.dirname(fname)
+    #        except (IOError, OSError):
+    #            pass
 
     def wipe (self):
         """ Deletes everything in the cache """
