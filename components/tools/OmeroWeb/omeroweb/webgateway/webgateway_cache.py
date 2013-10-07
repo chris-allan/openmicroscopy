@@ -367,7 +367,7 @@ class WebGatewayCache (object):
         self._img_cache = self._get_cache(self._img_cache_name)
         self._thumb_cache = self._get_cache(self._thumb_cache_name)
 
-    def _get_cahce(cache_name):
+    def _get_cache(cache_name):
         """
         Returns the cache requested by name. If the cache requested does not
         exist, will do the next most sensible thing- return the 'default'
