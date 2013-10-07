@@ -383,9 +383,11 @@ class WebGatewayCache (object):
         except InvalidCacheBackendError:
             logger.debug('InvalidCacheBackendError - checking for "default" Django cache')
             cache = get_cache('default')
-        if self._cache is None:
+        if cache is None:
             logger.error('Django cache unset. Check your Django settings, was CACHE with "default" present?')
             raise CacheError( 'Unable to obtain the cache information from Django.')
+
+        return cache
 
     #def _updateCacheSettings (self, cache, timeout=None, max_entries=None, max_size=None):
     #    """
