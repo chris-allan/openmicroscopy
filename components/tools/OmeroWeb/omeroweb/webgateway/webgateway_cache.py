@@ -483,15 +483,15 @@ class WebGatewayCache (object):
         self._img_cache.clear()
         self._thumb_cache.clear()
 
-     def _cache_set (self, cache, key, obj):
-         """ Calls cache.set(key, obj) """
-         logger.debug('   set: %s' % key)
-         cache.set(key, obj)
+    def _cache_set (self, cache, key, obj):
+        """ Calls cache.set(key, obj) """
+        logger.debug('   set: %s' % key)
+        cache.set(key, obj)
 
-     def _cache_clear (self, cache, key):
-         """ Calls cache.delete(key) """
-         logger.debug(' clear: %s' % key)
-         cache.delete(key)
+    def _cache_clear (self, cache, key):
+        """ Calls cache.delete(key) """
+        logger.debug(' clear: %s' % key)
+        cache.delete(key)
 
     def invalidateObject (self, client_base, user_id, obj):
         """
