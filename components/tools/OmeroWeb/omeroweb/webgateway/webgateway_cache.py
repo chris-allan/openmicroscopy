@@ -405,17 +405,17 @@ class WebGatewayCache (object):
     #        if max_size is not None:
     #            c._max_size = max_size
 
-    #def __del__ (self):
-    #    """
-    #    Tries to remove the lock on this cache.
-    #    """
-    #    if self._lastlock:
-    #        try:
-    #            logger.debug('removing cache lock file on __del__')
-    #            os.remove(self._lastlock)
-    #        except:
-    #            pass
-    #        self._lastlock = None
+    def __del__ (self):
+        """
+        Tries to remove the lock on this cache.
+        """
+        if self._lastlock:
+            try:
+                logger.debug('removing cache lock file on __del__')
+                os.remove(self._lastlock)
+            except:
+                pass
+            self._lastlock = None
 
     def tryLock (self):
         """
@@ -705,22 +705,22 @@ class WebGatewayCache (object):
     ##
     # hierarchies (json)
 
-    #def _jsonKey (self, r, client_base, obj, ctx=''):
-    #    """
-    #    Creates a cache key for storing json data based on params above.
+    def _jsonKey (self, r, client_base, obj, ctx=''):
+       """
+       Creates a cache key for storing json data based on params above.
 
-    #    @param r:               http request - not used
-    #    @param client_base:     server_id
-    #    @param obj:             ObjectWrapper
-    #    @param ctx:             Additional string for cache key
-    #    @return:                Cache key
-    #    @rtype:                 String
-    #    """
+       @param r:               http request - not used
+       @param client_base:     server_id
+       @param obj:             ObjectWrapper
+       @param ctx:             Additional string for cache key
+       @return:                Cache key
+       @rtype:                 String
+       """
 
-    #    if obj:
-    #        return 'json_%s/%s_%s/%s' % (client_base, obj.OMERO_CLASS, obj.id, ctx)
-    #    else:
-    #        return 'json_%s/single/%s' % (client_base, ctx)
+       if obj:
+           return 'json_%s/%s_%s/%s' % (client_base, obj.OMERO_CLASS, obj.id, ctx)
+       else:
+           return 'json_%s/single/%s' % (client_base, ctx)
 
     def getJson (self, r, client_base, obj, ctx=''):
         """
