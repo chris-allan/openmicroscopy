@@ -584,40 +584,40 @@ class WebGatewayCache (object):
     ##
     # Image
 
-    #def _imageKey (self, r, client_base, img, z=0, t=0):
-    #    """
-    #    Returns a key for caching the Image, based on parameters above, including rendering settings
-    #    specified in the http request.
+    def _imageKey (self, r, client_base, img, z=0, t=0):
+       """
+       Returns a key for caching the Image, based on parameters above, including rendering settings
+       specified in the http request.
 
-    #    @param r:               http request - get rendering params 'c', 'm', 'p'
-    #    @param client_base:     server_id for cache key
-    #    @param img:             L{omero.gateway.ImageWrapper} for ID
-    #    @param obj:             Data to cache
-    #    @param size:            Size used for cache key. Tuple
-    #    """
+       @param r:               http request - get rendering params 'c', 'm', 'p'
+       @param client_base:     server_id for cache key
+       @param img:             L{omero.gateway.ImageWrapper} for ID
+       @param obj:             Data to cache
+       @param size:            Size used for cache key. Tuple
+       """
 
-    #    iid = img.getId()
-    #    pre = str(iid)[:-4]
-    #    if len(pre) == 0:
-    #        pre = '0'
-    #    if r:
-    #        r = r.REQUEST
-    #        c = FN_REGEX.sub('-',r.get('c', ''))
-    #        m = r.get('m', '')
-    #        p = r.get('p', '')
-    #        if p and not isinstance(omero.gateway.ImageWrapper.PROJECTIONS.get(p, -1),
-    #                                omero.constants.projection.ProjectionType): #pragma: nocover
-    #            p = ''
-    #        q = r.get('q', '')
-    #        region = r.get('region', '')
-    #        tile = r.get('tile', '')
-    #        rv = 'img_%s/%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (client_base, pre, str(iid), c, m, q, region, tile)
-    #        if p:
-    #            return rv % ('%s-%s' % (p, str(t)))
-    #        else:
-    #            return rv % ('%sx%s' % (str(z), str(t)))
-    #    else:
-    #        return 'img_%s/%s/%s' % (client_base, pre, str(iid))
+       iid = img.getId()
+       pre = str(iid)[:-4]
+       if len(pre) == 0:
+           pre = '0'
+       if r:
+           r = r.REQUEST
+           c = FN_REGEX.sub('-',r.get('c', ''))
+           m = r.get('m', '')
+           p = r.get('p', '')
+           if p and not isinstance(omero.gateway.ImageWrapper.PROJECTIONS.get(p, -1),
+                                   omero.constants.projection.ProjectionType): #pragma: nocover
+               p = ''
+           q = r.get('q', '')
+           region = r.get('region', '')
+           tile = r.get('tile', '')
+           rv = 'img_%s/%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (client_base, pre, str(iid), c, m, q, region, tile)
+           if p:
+               return rv % ('%s-%s' % (p, str(t)))
+           else:
+               return rv % ('%sx%s' % (str(z), str(t)))
+       else:
+           return 'img_%s/%s/%s' % (client_base, pre, str(iid))
 
     def setImage (self, r, client_base, img, z, t, obj, ctx=''):
         """
