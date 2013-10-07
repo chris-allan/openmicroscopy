@@ -49,304 +49,304 @@ class CacheError(Exception):
     def __str__(self):
         return repr("There was a problem with WebGatewayCache- %s" % self.value)
 
-class CacheBase (object): #pragma: nocover
-    """
-    Caching base class - extended by L{FileCache} for file-based caching.
-    Methods of this base class return None or False providing a no-caching implementation if needed
-    """
+# class CacheBase (object): #pragma: nocover
+#     """
+#     Caching base class - extended by L{FileCache} for file-based caching.
+#     Methods of this base class return None or False providing a no-caching implementation if needed
+#     """
 
-    def __init__ (self):
-        """ not implemented """
-        pass
+#     def __init__ (self):
+#         """ not implemented """
+#         pass
 
-    def get (self, k):
-        return None
+#     def get (self, k):
+#         return None
 
-    def set (self, k, v, t=0, invalidateGroup=None):
-        return False
+#     def set (self, k, v, t=0, invalidateGroup=None):
+#         return False
 
-    def delete (self, k):
-        return False
+#     def delete (self, k):
+#         return False
 
-    def wipe (self):
-        return False
+#     def wipe (self):
+#         return False
 
-class FileCache(CacheBase):
-    """
-    Implements file-based caching within the directory specified in constructor.
-    """
-    _purge_holdoff = 4
+# class FileCache(CacheBase):
+#     """
+#     Implements file-based caching within the directory specified in constructor.
+#     """
+#     _purge_holdoff = 4
 
-    def __init__(self, cache_name='default', timeout=60, max_entries=None, max_size=None):
-        """
-        Initialises the class.
+#     def __init__(self, cache_name='default', timeout=60, max_entries=None, max_size=None):
+#         """
+#         Initialises the class.
 
-        @param cache_name:  The name of the cache in the settings file (if not found, use 'default')
-        @param timeout:     Cache timeout in secs
-        @param max_entries: DEPRECATED, no longer used
-        @param max_size:    DEPRECATED, no longer used
-        """
+#         @param cache_name:  The name of the cache in the settings file (if not found, use 'default')
+#         @param timeout:     Cache timeout in secs
+#         @param max_entries: DEPRECATED, no longer used
+#         @param max_size:    DEPRECATED, no longer used
+#         """
 
-        super(FileCache, self).__init__()
-        self._cache_name = cache_name
-        self._requested_cache_name = copy(cache_name)
-        self._default_timeout=timeout
-        self._cache = None
-        try:
-            logger.debug('Checking for Django cache "%s"' % self._cache_name)
-            self._cache = get_cache(self._cache_name)
-        except InvalidCacheBackendError:
-            logger.debug('InvalidCacheBackendError - checking for "default" Django cache')
-            self._cache = get_cache('default')
-            self._cache_name = 'default'
-        if self._cache is None:
-            logger.error('Django cache unset. Check your Django settings, was CACHE with "default" present?')
-            raise CacheError( 'Unable to obtain the cache information from Django.')
+#         super(FileCache, self).__init__()
+#         self._cache_name = cache_name
+#         self._requested_cache_name = copy(cache_name)
+#         self._default_timeout=timeout
+#         self._cache = None
+#         try:
+#             logger.debug('Checking for Django cache "%s"' % self._cache_name)
+#             self._cache = get_cache(self._cache_name)
+#         except InvalidCacheBackendError:
+#             logger.debug('InvalidCacheBackendError - checking for "default" Django cache')
+#             self._cache = get_cache('default')
+#             self._cache_name = 'default'
+#         if self._cache is None:
+#             logger.error('Django cache unset. Check your Django settings, was CACHE with "default" present?')
+#             raise CacheError( 'Unable to obtain the cache information from Django.')
 
-    def add(self, key, value, timeout=None, invalidateGroup=None):
-        """
-        Adds data to cache, returning False if already cached. Otherwise delegating to L{set}
+#     def add(self, key, value, timeout=None, invalidateGroup=None):
+#         """
+#         Adds data to cache, returning False if already cached. Otherwise delegating to L{set}
 
-        @param key:                 Unique key for cache
-        @param value:               Value to cache - must be String
-        @param timeout:             Optional timeout - otherwise use default
-        @param invalidateGroup:     Not used?
-        """
+#         @param key:                 Unique key for cache
+#         @param value:               Value to cache - must be String
+#         @param timeout:             Optional timeout - otherwise use default
+#         @param invalidateGroup:     Not used?
+#         """
 
-        if self.has_key(key):
-            return False
+#         if self.has_key(key):
+#             return False
 
-        self.set(key, value, timeout, invalidateGroup=invalidateGroup)
-        return True
+#         self.set(key, value, timeout, invalidateGroup=invalidateGroup)
+#         return True
 
-    def get(self, key, default=None):
-        """
-        Gets data from cache
+#     def get(self, key, default=None):
+#         """
+#         Gets data from cache
 
-        @param key:     cache key
-        @param default: default value to return
-        @return:        cache data or default if timout has passed
-        """
-        #fname = self._key_to_file(key)
-        #try:
-        #    f = open(fname, 'rb')
-        #    if not self._check_entry(f):
-        #        f.close()
-        #        self._delete(fname)
-        #    else:
-        #        return f.read()
-        #except (IOError, OSError, EOFError, struct.error):
-        #    pass
-        t = self._cache.get_key(key)
-        if t is None:
-            return default
-        return t
+#         @param key:     cache key
+#         @param default: default value to return
+#         @return:        cache data or default if timout has passed
+#         """
+#         #fname = self._key_to_file(key)
+#         #try:
+#         #    f = open(fname, 'rb')
+#         #    if not self._check_entry(f):
+#         #        f.close()
+#         #        self._delete(fname)
+#         #    else:
+#         #        return f.read()
+#         #except (IOError, OSError, EOFError, struct.error):
+#         #    pass
+#         t = self._cache.get_key(key)
+#         if t is None:
+#             return default
+#         return t
 
-    def set(self, key, value, timeout=None, invalidateGroup=None):
-        """
-        Adds data to cache, overwriting if already cached.
+#     def set(self, key, value, timeout=None, invalidateGroup=None):
+#         """
+#         Adds data to cache, overwriting if already cached.
 
-        @param key:                 Unique key for cache
-        @param value:               Value to cache - must be String
-        @param timeout:             Optional timeout - otherwise use default
-        @param invalidateGroup:     Not used?
-        """
+#         @param key:                 Unique key for cache
+#         @param value:               Value to cache - must be String
+#         @param timeout:             Optional timeout - otherwise use default
+#         @param invalidateGroup:     Not used?
+#         """
 
-        if not isinstance(value, StringTypes):
-            raise ValueError("%s not a string, can't cache" % type(value))
-        #fname = self._key_to_file(key)
-        #dirname = os.path.dirname(fname)
+#         if not isinstance(value, StringTypes):
+#             raise ValueError("%s not a string, can't cache" % type(value))
+#         #fname = self._key_to_file(key)
+#         #dirname = os.path.dirname(fname)
 
-        #if timeout is None:
-        #    timeout = self._default_timeout
+#         #if timeout is None:
+#         #    timeout = self._default_timeout
 
-        #if self._full():
-        #    # Maybe we already have this one cached, and we need the space
-        #    try:
-        #        self._delete(fname)
-        #    except OSError:
-        #        pass
-        #    if self._full():
-        #        return
+#         #if self._full():
+#         #    # Maybe we already have this one cached, and we need the space
+#         #    try:
+#         #        self._delete(fname)
+#         #    except OSError:
+#         #        pass
+#         #    if self._full():
+#         #        return
 
-        #try:
-        #    if not os.path.exists(dirname):
-        #        os.makedirs(dirname)
+#         #try:
+#         #    if not os.path.exists(dirname):
+#         #        os.makedirs(dirname)
 
-        #    f = open(fname, 'wb')
-        #    if timeout > 0:
-        #        exp = time.time() + timeout + (timeout / 5 * random())
-        #    else:
-        #        exp = 0
-        #    f.write(struct.pack('d', exp))
-        #    f.write(value)
-        #    f.close()
-        #except (IOError, OSError): #pragma: nocover
-        #    pass
+#         #    f = open(fname, 'wb')
+#         #    if timeout > 0:
+#         #        exp = time.time() + timeout + (timeout / 5 * random())
+#         #    else:
+#         #        exp = 0
+#         #    f.write(struct.pack('d', exp))
+#         #    f.write(value)
+#         #    f.close()
+#         #except (IOError, OSError): #pragma: nocover
+#         #    pass
 
-    def delete(self, key):
-        """
-        Attempt to delete the cache data referenced by key
-        @param key:     Cache key
-        """
+#     def delete(self, key):
+#         """
+#         Attempt to delete the cache data referenced by key
+#         @param key:     Cache key
+#         """
 
-        self._cache.delete(key)
+#         self._cache.delete(key)
 
-    #def _delete(self, fname):
-    #    """
-    #    Tries to delete the data at the specified absolute file path
+#     #def _delete(self, fname):
+#     #    """
+#     #    Tries to delete the data at the specified absolute file path
 
-    #    @param fname:   File name of data to delete
-    #    """
+#     #    @param fname:   File name of data to delete
+#     #    """
 
-    #    logger.debug('requested delete for "%s"' % fname)
-    #    if os.path.isdir(fname):
-    #        shutil.rmtree(fname, ignore_errors=True)
-    #    else:
-    #        os.remove(fname)
-    #        try:
-    #            # Remove the parent subdirs if they're empty
-    #            dirname = os.path.dirname(fname)
-    #            while dirname != self._dir:
-    #                os.rmdir(dirname)
-    #                dirname = os.path.dirname(fname)
-    #        except (IOError, OSError):
-    #            pass
+#     #    logger.debug('requested delete for "%s"' % fname)
+#     #    if os.path.isdir(fname):
+#     #        shutil.rmtree(fname, ignore_errors=True)
+#     #    else:
+#     #        os.remove(fname)
+#     #        try:
+#     #            # Remove the parent subdirs if they're empty
+#     #            dirname = os.path.dirname(fname)
+#     #            while dirname != self._dir:
+#     #                os.rmdir(dirname)
+#     #                dirname = os.path.dirname(fname)
+#     #        except (IOError, OSError):
+#     #            pass
 
-    def wipe (self):
-        """ Deletes everything in the cache """
+#     def wipe (self):
+#         """ Deletes everything in the cache """
 
-        shutil.rmtree(self._dir)
-        self._createdir()
-        return True
+#         shutil.rmtree(self._dir)
+#         self._createdir()
+#         return True
 
-    #def _check_entry (self, fname):
-    #    """
-    #    Verifies if a specific cache entry (provided as absolute file path) is expired.
-    #    If expired, it gets deleted and method returns false.
-    #    If not expired, returns True.
+#     #def _check_entry (self, fname):
+#     #    """
+#     #    Verifies if a specific cache entry (provided as absolute file path) is expired.
+#     #    If expired, it gets deleted and method returns false.
+#     #    If not expired, returns True.
 
-    #   If fname is a file object, fpos will advance size_of_double bytes.
+#     #   If fname is a file object, fpos will advance size_of_double bytes.
 
-    #    @param fname:   File path or file object
-    #    @rtype Boolean
-    #    @return True if entry is valid, False if expired
-    #    """
-    #    try:
-    #        if isinstance(fname, StringTypes):
-    #            f = open(fname, 'rb')
-    #            exp = struct.unpack('d',f.read(size_of_double))[0]
-    #        else:
-    #            f = None
-    #            exp = struct.unpack('d',fname.read(size_of_double))[0]
-    #        if self._default_timeout > 0 and exp > 0:
-    #            now = time.time()
-    #            if exp < now:
-    #                if f is not None:
-    #                    f.close()
-    #                    self._delete(fname)
-    #                return False
-    #            else:
-    #                return True
-    #        return True
-    #    except (IOError, OSError, EOFError, struct.error): #pragma: nocover
-    #        return False
+#     #    @param fname:   File path or file object
+#     #    @rtype Boolean
+#     #    @return True if entry is valid, False if expired
+#     #    """
+#     #    try:
+#     #        if isinstance(fname, StringTypes):
+#     #            f = open(fname, 'rb')
+#     #            exp = struct.unpack('d',f.read(size_of_double))[0]
+#     #        else:
+#     #            f = None
+#     #            exp = struct.unpack('d',fname.read(size_of_double))[0]
+#     #        if self._default_timeout > 0 and exp > 0:
+#     #            now = time.time()
+#     #            if exp < now:
+#     #                if f is not None:
+#     #                    f.close()
+#     #                    self._delete(fname)
+#     #                return False
+#     #            else:
+#     #                return True
+#     #        return True
+#     #    except (IOError, OSError, EOFError, struct.error): #pragma: nocover
+#     #        return False
 
-    def has_key(self, key):
-        """
-        Returns true if the cache has the specified key
-        @param key:     Key to look for.
-        """
-        t = self._cache.get_key(key)
-        if t is None:
-            return False
-        return t
+#     def has_key(self, key):
+#         """
+#         Returns true if the cache has the specified key
+#         @param key:     Key to look for.
+#         """
+#         t = self._cache.get_key(key)
+#         if t is None:
+#             return False
+#         return t
 
-    def _du (self):
-        """
-        Disk Usage count on the filesystem the cache is based at
+#     def _du (self):
+#         """
+#         Disk Usage count on the filesystem the cache is based at
 
-        @rtype: int
-        @return: the current usage, in KB
-        """
-        return int(os.popen('du -sk %s' % os.path.join(os.getcwd(),self._dir)).read().split('\t')[0].strip())
+#         @rtype: int
+#         @return: the current usage, in KB
+#         """
+#         return int(os.popen('du -sk %s' % os.path.join(os.getcwd(),self._dir)).read().split('\t')[0].strip())
 
-    def _full(self, _on_retry=False):
-        """
-        Checks whether the cache is full, either because we have exceeded max number of entries or
-        the cache space is full.
+#     def _full(self, _on_retry=False):
+#         """
+#         Checks whether the cache is full, either because we have exceeded max number of entries or
+#         the cache space is full.
 
-        @param _on_retry:   Flag allows calling this method again after purge() without recursion
-        @return:            True if cache is full
-        @rtype:             Boolean
-        """
+#         @param _on_retry:   Flag allows calling this method again after purge() without recursion
+#         @return:            True if cache is full
+#         @rtype:             Boolean
+#         """
 
-        # Check nr of entries
-        if self._max_entries:
-            try:
-                x = int(os.popen('find %s -type f | wc -l' % self._dir).read().strip())
-                if x >= self._max_entries:
-                    if not _on_retry:
-                        self._purge()
-                        return self._full(True)
-                    logger.warn('caching limits reached on %s: max entries %d' % (self._dir, self._max_entries))
-                    return True
-            except ValueError: #pragma: nocover
-                logger.error('Counting cache entries failed')
-        # Check for space usage
-        if self._max_size:
-            try:
-                x = self._du()
-                if x >= self._max_size:
-                    if not _on_retry:
-                        self._purge()
-                        return self._full(True)
-                    logger.warn('caching limits reached on %s: max size %d' % (self._dir, self._max_size))
-                    return True
-            except ValueError: #pragma: nocover
-                logger.error('Counting cache size failed')
-        return False
+#         # Check nr of entries
+#         if self._max_entries:
+#             try:
+#                 x = int(os.popen('find %s -type f | wc -l' % self._dir).read().strip())
+#                 if x >= self._max_entries:
+#                     if not _on_retry:
+#                         self._purge()
+#                         return self._full(True)
+#                     logger.warn('caching limits reached on %s: max entries %d' % (self._dir, self._max_entries))
+#                     return True
+#             except ValueError: #pragma: nocover
+#                 logger.error('Counting cache entries failed')
+#         # Check for space usage
+#         if self._max_size:
+#             try:
+#                 x = self._du()
+#                 if x >= self._max_size:
+#                     if not _on_retry:
+#                         self._purge()
+#                         return self._full(True)
+#                     logger.warn('caching limits reached on %s: max size %d' % (self._dir, self._max_size))
+#                     return True
+#             except ValueError: #pragma: nocover
+#                 logger.error('Counting cache size failed')
+#         return False
 
-    def _purge (self):
-        """
-        Iterate the whole cache structure searching and cleaning expired entries.
-        this method may be expensive, so only call it when really necessary.
-        """
-        now = time.time()
-        if now-self._last_purge < self._purge_holdoff:
-            return
-        self._last_purge = now
+#     def _purge (self):
+#         """
+#         Iterate the whole cache structure searching and cleaning expired entries.
+#         this method may be expensive, so only call it when really necessary.
+#         """
+#         now = time.time()
+#         if now-self._last_purge < self._purge_holdoff:
+#             return
+#         self._last_purge = now
 
-        logger.debug('entering purge')
-        count = 0
-        for p,_,files in os.walk(self._dir):
-            for f in files:
-                if not self._check_entry(os.path.join(p, f)):
-                    count += 1
-        logger.debug('purge finished, removed %d files' % count)
+#         logger.debug('entering purge')
+#         count = 0
+#         for p,_,files in os.walk(self._dir):
+#             for f in files:
+#                 if not self._check_entry(os.path.join(p, f)):
+#                     count += 1
+#         logger.debug('purge finished, removed %d files' % count)
 
-    def _key_to_file(self, key):
-        """
-        Uses the key to construct an absolute path to the cache data.
-        @param key:     Cache key
-        @return:        Path
-        @rtype:         String
-        """
+#     def _key_to_file(self, key):
+#         """
+#         Uses the key to construct an absolute path to the cache data.
+#         @param key:     Cache key
+#         @return:        Path
+#         @rtype:         String
+#         """
 
-        if key.find('..') > 0 or key.startswith('/'):
-            raise ValueError('Invalid value for cache key: "%s"' % key)
-        return os.path.join(self._dir, key)
+#         if key.find('..') > 0 or key.startswith('/'):
+#             raise ValueError('Invalid value for cache key: "%s"' % key)
+#         return os.path.join(self._dir, key)
 
-    def _get_num_entries(self):
-        """
-        Returns the number of files in the cache
-        @rtype:     int
-        """
-        count = 0
-        for _,_,files in os.walk(self._dir):
-            count += len(files)
-        return count
-    _num_entries = property(_get_num_entries)
+#     def _get_num_entries(self):
+#         """
+#         Returns the number of files in the cache
+#         @rtype:     int
+#         """
+#         count = 0
+#         for _,_,files in os.walk(self._dir):
+#             count += len(files)
+#         return count
+#     _num_entries = property(_get_num_entries)
 
 FN_REGEX = re.compile('[#$,|]')
 class WebGatewayCache (object):
