@@ -479,21 +479,19 @@ class WebGatewayCache (object):
         """
         Clears all the caches.
         """
-        self._json_cache.wipe()
-        self._img_cache.wipe()
-        self._thumb_cache.wipe()
+        self._json_cache.clear()
+        self._img_cache.clear()
+        self._thumb_cache.clear()
 
-    def _cache_set (self, cache, key, obj):
-        """ Calls cache.set(key, obj) """
+     def _cache_set (self, cache, key, obj):
+         """ Calls cache.set(key, obj) """
+         logger.debug('   set: %s' % key)
+         cache.set(key, obj)
 
-        logger.debug('   set: %s' % key)
-        cache.set(key, obj)
-
-    def _cache_clear (self, cache, key):
-        """ Calls cache.delete(key) """
-
-        logger.debug(' clear: %s' % key)
-        cache.delete(key)
+     def _cache_clear (self, cache, key):
+         """ Calls cache.delete(key) """
+         logger.debug(' clear: %s' % key)
+         cache.delete(key)
 
     def invalidateObject (self, client_base, user_id, obj):
         """
@@ -513,23 +511,23 @@ class WebGatewayCache (object):
     ##
     # Thumb
 
-    #def _thumbKey (self, r, client_base, user_id, iid, size):
-    #    """
-    #    Generates a string key for caching the thumbnail, based on the above parameters
+    def _thumbKey (self, r, client_base, user_id, iid, size):
+        """
+        Generates a string key for caching the thumbnail, based on the above parameters
 
-    #    @param r:       not used
-    #    @param client_base:     server-id, forms stem of the key
-    #    @param user_id:         OMERO user ID to partition caching upon
-    #    @param iid:             image ID
-    #    @param size:            size of the thumbnail - tuple. E.g. (100,)
-    #    """
-    #    pre = str(iid)[:-4]
-    #    if len(pre) == 0:
-    #        pre = '0'
-    #    if size is not None and len(size):
-    #        return 'thumb_user_%s/%s/%s/%s/%s' % (client_base, pre, str(iid), user_id, 'x'.join([str(x) for x in size]))
-    #    else:
-    #        return 'thumb_user_%s/%s/%s/%s' % (client_base, pre, str(iid), user_id)
+        @param r:       not used
+        @param client_base:     server-id, forms stem of the key
+        @param user_id:         OMERO user ID to partition caching upon
+        @param iid:             image ID
+        @param size:            size of the thumbnail - tuple. E.g. (100,)
+        """
+        pre = str(iid)[:-4]
+        if len(pre) == 0:
+            pre = '0'
+        if size is not None and len(size):
+            return 'thumb_user_%s/%s/%s/%s/%s' % (client_base, pre, str(iid), user_id, 'x'.join([str(x) for x in size]))
+        else:
+            return 'thumb_user_%s/%s/%s/%s' % (client_base, pre, str(iid), user_id)
 
     def setThumb (self, r, client_base, user_id, iid, obj, size=()):
         """
