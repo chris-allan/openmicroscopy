@@ -366,6 +366,7 @@ class WebGatewayCache (object):
         self._json_cache = self._get_cache(self._json_cache_name)
         self._img_cache = self._get_cache(self._img_cache_name)
         self._thumb_cache = self._get_cache(self._thumb_cache_name)
+        self._lastlock = None
 
     def _get_cache(self, cache_name):
         """
