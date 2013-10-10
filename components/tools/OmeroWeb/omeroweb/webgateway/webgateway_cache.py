@@ -494,7 +494,10 @@ class WebGatewayCache (object):
     def _cache_clear (self, cache, key):
         """ Calls cache.delete(key) """
         logger.debug(' clear: %s' % key)
+        print "clear: %s" % key
         cache.delete(key)
+        foo = cache.get(key)
+        print "should be none, foo is: %s" foo
 
     def invalidateObject (self, client_base, user_id, obj):
         """
@@ -654,7 +657,6 @@ class WebGatewayCache (object):
         """
         k = self._imageKey(r, client_base, img, z, t) + ctx
         r = self._img_cache.get(k)
-        print "getImage: %s" % r
         if r is None:
             logger.debug('  fail: %s' % k)
         else:
