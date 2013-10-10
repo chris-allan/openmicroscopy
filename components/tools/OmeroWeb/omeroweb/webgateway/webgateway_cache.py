@@ -654,6 +654,7 @@ class WebGatewayCache (object):
         """
         k = self._imageKey(r, client_base, img, z, t) + ctx
         r = self._img_cache.get(k)
+        print "getImage: %s" % r
         if r is None:
             logger.debug('  fail: %s' % k)
         else:
