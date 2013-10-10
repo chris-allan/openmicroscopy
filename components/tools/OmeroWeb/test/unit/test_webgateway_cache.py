@@ -56,6 +56,7 @@ class TestWebGatewayCache(unittest.TestCase):
         self.cache.setThumb(self.request, 'test', uid, 1, 'thumbdata')
         assert self.cache.getThumb(self.request, 'test', uid, 1) == 'thumbdata'
         img = omero.gateway.ImageWrapper(None, omero.model.ImageI(1,False))
+        print img
         assert self.cache.getImage(self.request, 'test', img, 2, 3) is None
         self.cache.setImage(self.request, 'test', img, 2, 3, 'imagedata')
         assert self.cache.getImage(self.request, 'test', img, 2, 3) == 'imagedata'
