@@ -497,7 +497,7 @@ class WebGatewayCache (object):
         print "clear: %s" % key
         cache.delete(key)
         foo = cache.get(key)
-        print "should be none, foo is: %s" foo
+        print "should be none, foo is: %s" % foo
 
     def invalidateObject (self, client_base, user_id, obj):
         """
