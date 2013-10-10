@@ -12,6 +12,7 @@ import unittest
 from omeroweb.webgateway.webgateway_cache import WebGatewayCache
 import django
 import omero
+from omero.gateway.scripts.testdb_create import *
 
 class TestWebGatewayCache(unittest.TestCase):
 
