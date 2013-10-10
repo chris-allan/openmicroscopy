@@ -11,6 +11,7 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'unit.test_webgateway_cache_settings'
 import unittest
 from omeroweb.webgateway.webgateway_cache import WebGatewayCache
 import django
+import omero
 
 class TestWebGatewayCache(unittest.TestCase):
 
