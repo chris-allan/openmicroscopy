@@ -142,7 +142,7 @@ class WebGatewayeCacheRedis(object):
         @return (hash_string, key_string)
         """
         pre = str(iid)[:-4]
-        hash_string = 'thumb_user_%s'client_base
+        hash_string = 'thumb_user_%s' % client_base
         key_string = ''
         if len(pre) == 0:
             pre = '0'
