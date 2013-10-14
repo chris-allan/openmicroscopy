@@ -133,7 +133,7 @@ class WebGatewayeCacheRedis(object):
         @param size:            Size used for cache key. Tuple
         """
         
-        (h,k) = self._thumbKey(r, client_base, user_id, iid, size)
+        (h,k) = self._thumb_key(r, client_base, user_id, iid, size)
         self._redis.hset(h,k,obj)
         if self._redis.ttl(h) < 0:
             self._redis.expire(h, self._default_timout)
@@ -151,11 +151,70 @@ class WebGatewayeCacheRedis(object):
         @return:                Cached data or None
         @rtype:                 String
         """
-        (h,k) = self._thumbKey(r, client_base, user_id, iid, size)
+        (h,k) = self._thumb_key(client_base, user_id, iid, size)
         r = self._redis.hget(h,k)
         if r is None:
             logger.debug('  fail: %s' % k)
         else:
             logger.debug('cached: %s' % k)
         return r
+
+    def clearThumb (self, r, client_base, user_id, iid, size=None):
+        """
+        Clears thumbnail from cache. 
         
+        @param r:               for cache key - Not used? 
+        @param client_base:     server_id for cache key
+        @param user_id:         OMERO user ID to partition caching upon
+        @param iid:             image ID for cache key
+        @param size:            Size used for cache key. Tuple
+        @return:                True
+        """
+        (h,k_toss) = self._thumb_key(client_base, user_id, iid, size)
+        keys = self._redis.hgetall(h)
+        for k in keys:
+            if self._redis.hdel(h,k) < 1:
+                logger.error('failed to delete cached key %s:%s' % (h,k))
+        return True
+
+
+    ##
+    # Image
+
+    def _image_key (self, r, client_base, img, z=0, t=0):
+        """
+        Generates the hash and string key for caching the Image, based on parameters
+        above, including rendering settings specified in the http request.
+        
+        @param r:               http request - get rendering params 'c', 'm', 'p'
+        @param client_base:     server_id for cache key
+        @param img:             L{omero.gateway.ImageWrapper} for ID
+        @param obj:             Data to cache
+        @param size:            Size used for cache key. Tuple
+        """
+        
+        iid = img.getId()
+        pre = str(iid)[:-4]
+        hash_string = ''
+        key_string = ''
+        if len(pre) == 0:
+            pre = '0'
+        if r:
+            r = r.REQUEST
+            c = FN_REGEX.sub('-',r.get('c', ''))
+            m = r.get('m', '')
+            p = r.get('p', '')
+            if p and not isinstance(omero.gateway.ImageWrapper.PROJECTIONS.get(p, -1),
+                                    omero.constants.projection.ProjectionType): #pragma: nocover
+                p = ''
+            q = r.get('q', '')
+            region = r.get('region', '')
+            tile = r.get('tile', '')
+            hash_string = 'img_%s' % client_base
+            key_string = '%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (client_base, pre, str(iid), c, m, q, region, tile)
+            if p:
+                return (hash_string, key_string % ('%s-%s' % (p, str(t))))
+            else:
+                return (hash_string, key_string % ('%sx%s' % (str(z), str(t))))
+        else:
+            return ('img_%s', '%s/%s' % (client_base, pre, str(iid)))
