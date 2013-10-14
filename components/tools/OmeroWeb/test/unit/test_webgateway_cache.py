@@ -91,15 +91,15 @@ class TestWebGatewayCache(unittest.TestCase):
         self.cache.setImage(self.request, 'test', img, 2, 3, 'imagedata')
         assert self.cache.getImage(self.request, 'test', img, 2, 3) == 'imagedata'
 
-    def testLocks (self):
-        wcache2 = WebGatewayCache()
-        #wcache2 will hold the lock
-        assert wcache2.tryLock()
-        assert not self.cache.tryLock()
-        assert wcache2.tryLock()
-        del wcache2
-        # The lock should have been removed
-        assert self.cache.tryLock()
+    #def testLocks (self):
+    #    wcache2 = WebGatewayCache()
+    #    #wcache2 will hold the lock
+    #    assert wcache2.tryLock()
+    #    assert not self.cache.tryLock()
+    #    assert wcache2.tryLock()
+    #    del wcache2
+    #    # The lock should have been removed
+    #    assert self.cache.tryLock()
 
     def testJsonCache (self):
         uid = 123
