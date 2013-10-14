@@ -22,6 +22,8 @@ import redis
 
 logger = logging.getLogger(__name__)
 
+FN_REGEX = re.compile('[#$,|]')
+
 class WebGatewayCacheRedis(object):
     """
     Experiemental rewrite of WebGatewayeCache using Redis as the caching
