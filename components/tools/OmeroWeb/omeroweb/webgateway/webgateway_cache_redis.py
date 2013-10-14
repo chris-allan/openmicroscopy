@@ -32,7 +32,7 @@ class WebGatewayeCacheRedis(object):
         self._redis_host = getattr(settings, 'REDIS_HOST', 'localhost')
         self._redis_port = getattr(settings, 'REDIS_PORT', 6379)
         self._redis_db = getattr(settings, 'REDIS_DB', 0)
-        self._default_timout = getattr(settings, 'REDIS_DEFAULT_TIMEOUT', 60)
+        self._default_timeout = getattr(settings, 'REDIS_DEFAULT_TIMEOUT', 60)
 
         self._redis = redis.StrictRedis(host=self._redis_host, \
             port=self._redis_port, db=self._redis_db)
@@ -94,6 +94,20 @@ class WebGatewayeCacheRedis(object):
             logger.debug('unhandled object type: %s' % obj.OMERO_CLASS)
             self.clearJson(client_base, obj)
 
+    def _cache_set(self, h, k, obj, timeout=self._default_timeout):
+        """
+        Sets the cache.
+
+        @param h:               The hash_key for the cache
+        @param k:               The key for the cache
+        @param obj:             The object to cache
+        @param timeout:         The timeout for the object
+        """
+        self._redis.hset(h,k,obj)
+        if self._redis.ttl(h) < 0:
+            self._redis.expire(h, timeout)
+        return True
+
 
     ##
     # Thumb
@@ -134,10 +148,7 @@ class WebGatewayeCacheRedis(object):
         """
         
         (h,k) = self._thumb_key(r, client_base, user_id, iid, size)
-        self._redis.hset(h,k,obj)
-        if self._redis.ttl(h) < 0:
-            self._redis.expire(h, self._default_timout)
-        return True
+        return self._cache_set(h,k,obj)
 
     def getThumb(self, r, client_base, user_id, iid, size=()):
                 """
@@ -218,3 +229,39 @@ class WebGatewayeCacheRedis(object):
                 return (hash_string, key_string % ('%sx%s' % (str(z), str(t))))
         else:
             return ('img_%s', '%s/%s' % (client_base, pre, str(iid)))
+
+    def setImage (self, r, client_base, img, z, t, obj, ctx=''):
+        """
+        Puts image data into cache.
+        
+        @param r:               http request for cache key
+        @param client_base:     server_id for cache key
+        @param img:             ImageWrapper for cache key
+        @param z:               Z index for cache key
+        @param t:               T index for cache key
+        @param obj:             Data to cache
+        @param ctx:             Additional string for cache key
+        """
+        (h,k) = self._image_key(r, client_base, img, z, t)
+        return self._cache_set(h, '%s%s' % (k, ctx),obj)
+
+    def getImage (self, r, client_base, img, z, t, ctx=''):
+        """
+        Gets image data from cache. 
+        
+        @param r:               http request for cache key
+        @param client_base:     server_id for cache key
+        @param img:             ImageWrapper for cache key
+        @param z:               Z index for cache key
+        @param t:               T index for cache key
+        @param ctx:             Additional string for cache key
+        @return:                Image data
+        @rtype:                 String
+        """
+        (h,k) = self._imageKey(r, client_base, img, z, t)
+        r = self._redis.hget(h, '%s%s' % (k, ctx))
+        if r is None:
+            logger.debug('  fail: %s' % k)
+        else:
+            logger.debug('cached: %s' % k)
+        return r
