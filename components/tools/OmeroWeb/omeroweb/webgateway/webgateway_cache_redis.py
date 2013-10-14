@@ -418,3 +418,5 @@ class WebGatewayeCacheRedis(object):
         for k in keys:
             self._cache_del(h,k)
         return True
+
+webgateway_cache = WebGatewayeCacheRedis()

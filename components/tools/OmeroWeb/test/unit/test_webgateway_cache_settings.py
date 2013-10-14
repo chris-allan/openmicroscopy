@@ -6,11 +6,3 @@
     Django settings for the test_webgateway_cache unit tests.
 """
 
-import os
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': os.path.join(CACHE_ROOT, 'default'),
-    }
-}
