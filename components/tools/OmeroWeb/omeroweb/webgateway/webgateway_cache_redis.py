@@ -94,7 +94,7 @@ class WebGatewayeCacheRedis(object):
             logger.debug('unhandled object type: %s' % obj.OMERO_CLASS)
             self.clearJson(client_base, obj)
 
-    def _cache_set(self, h, k, obj, timeout=self._default_timeout):
+    def _cache_set(self, h, k, obj, timeout=None):
         """
         Sets the cache.
 
@@ -103,6 +103,8 @@ class WebGatewayeCacheRedis(object):
         @param obj:             The object to cache
         @param timeout:         The timeout for the object
         """
+        if timeout is None:
+            timeout = self._default_timeout
         self._redis.hset(h,k,obj)
         if self._redis.ttl(h) < 0:
             self._redis.expire(h, timeout)
