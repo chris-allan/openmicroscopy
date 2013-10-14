@@ -119,3 +119,6 @@ class TestWebGatewayCache(unittest.TestCase):
         assert self.cache.getDatasetContents(self.request, 'test', ds) is None
         self.cache.setDatasetContents(self.request, 'test', ds, 'datasetdata')
         assert self.cache.getDatasetContents(self.request, 'test', ds) == 'datasetdata'
+        #assert self.cache._json_cache._num_entries !=  0
+        self.cache.clear()
+        #assert self.cache._json_cache._num_entries ==  0
