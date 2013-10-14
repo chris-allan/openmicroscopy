@@ -167,7 +167,7 @@ class WebGatewayCacheRedis(object):
         @param size:            Size used for cache key. Tuple
         """
 
-        (h,k) = self._thumb_key(r, client_base, user_id, iid, size)
+        (h,k) = self._thumb_key(client_base, user_id, iid, size)
         return self._cache_set(h,k,obj)
 
     def getThumb(self, r, client_base, user_id, iid, size=()):
