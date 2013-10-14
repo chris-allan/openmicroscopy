@@ -7,9 +7,6 @@
 """
 
 import os
-from omero.util import temp_files
-
-CACHE_ROOT = temp_files.create_path('django_cache', folder=True)
 
 CACHES = {
     'default': {
