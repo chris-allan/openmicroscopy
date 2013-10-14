@@ -169,7 +169,7 @@ class WebGatewayeCacheRedis(object):
         return self._cache_set(h,k,obj)
 
     def getThumb(self, r, client_base, user_id, iid, size=()):
-                """
+        """
         Gets thumbnail from cache. 
         
         @param r:               for cache key - Not used? 
