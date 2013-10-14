@@ -90,9 +90,6 @@ class TestWebGatewayCache(unittest.TestCase):
         assert self.cache.getImage(self.request, 'test', img, 2, 3) is None
         self.cache.setImage(self.request, 'test', img, 2, 3, 'imagedata')
         assert self.cache.getImage(self.request, 'test', img, 2, 3) == 'imagedata'
-        assert self.cache._img_cache._num_entries !=  0
-        self.cache.clear()
-        assert self.cache._img_cache._num_entries ==  0
 
     def testLocks (self):
         wcache2 = WebGatewayCache()
