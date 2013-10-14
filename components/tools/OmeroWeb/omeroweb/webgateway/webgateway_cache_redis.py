@@ -239,7 +239,7 @@ class WebGatewayCacheRedis(object):
             region = r.get('region', '')
             tile = r.get('tile', '')
             hash_string = 'img_%s' % client_base
-            key_string = '%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (client_base, pre, str(iid), c, m, q, region, tile)
+            key_string = '%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (pre, str(iid), c, m, q, region, tile)
             if p:
                 return (hash_string, key_string % ('%s-%s' % (p, str(t))))
             else:
