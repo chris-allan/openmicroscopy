@@ -340,7 +340,7 @@ class WebGatewayeCacheRedis(object):
         if obj:
             return ('json_%s' % client_base, '%s_%s/%s' % (obj.OMERO_CLASS, obj.id, ctx))
         else:
-            return ('json_%s', % client_base, 'single/%s' % (client_base, ctx))
+            return ('json_%s' % client_base, 'single/%s' % (client_base, ctx))
 
     def setJson(self, r, client_base, obj, data, ctx=''):
         """
