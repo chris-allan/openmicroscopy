@@ -108,6 +108,13 @@ class WebGatewayeCacheRedis(object):
             self._redis.expire(h, timeout)
         return True
 
+    def _cache_del(self, h, k):
+        """
+        Delete an element from the cache given hash_string and key
+        """
+        if self._redis.hdel(h,k) < 1:
+            logger.error('failed to delete cached key %s:%s' % (h,k))
+
 
     ##
     # Thumb
@@ -184,8 +191,7 @@ class WebGatewayeCacheRedis(object):
         (h,k_toss) = self._thumb_key(client_base, user_id, iid, size)
         keys = self._redis.hgetall(h)
         for k in keys:
-            if self._redis.hdel(h,k) < 1:
-                logger.error('failed to delete cached key %s:%s' % (h,k))
+            self._cache_del(h,k)
         return True
 
 
@@ -258,10 +264,79 @@ class WebGatewayeCacheRedis(object):
         @return:                Image data
         @rtype:                 String
         """
-        (h,k) = self._imageKey(r, client_base, img, z, t)
+        (h,k) = self._image_key(r, client_base, img, z, t)
         r = self._redis.hget(h, '%s%s' % (k, ctx))
         if r is None:
             logger.debug('  fail: %s' % k)
         else:
             logger.debug('cached: %s' % k)
         return r
+
+    def clearImage (self, r, client_base, user_id, img, skipJson=False):
+        """
+        Clears image data from cache using default rendering settings (r=None) T and Z indexes ( = 0).
+        TODO: Doesn't clear any data stored WITH r, t, or z specified in cache key? 
+        Also clears thumbnail (but not thumbs with size specified) and json data for this image. 
+        
+        @param r:               http request for cache key
+        @param client_base:     server_id for cache key
+        @param user_id:         OMERO user ID to partition caching upon
+        @param img:             ImageWrapper for cache key
+        @param obj:             Data to cache
+        @param rtype:           True
+        """
+        
+        (h,k_toss) = self._image_key(None, client_base, img)
+        keys = self._redis.hgetall(h)
+        for k in keys:
+            self._cache_del(h,k)
+        # do the thumb too
+        self.clearThumb(r, client_base, user_id, img.getId())
+        # and json data
+        if not skipJson:
+            self.clearJson(client_base, img)
+        return True
+
+    def setSplitChannelImage (self, r, client_base, img, z, t, obj):
+        """ Calls L{setImage} with '-sc' context """
+        return self.setImage(r, client_base, img, z, t, obj, '-sc')
+
+    def getSplitChannelImage (self, r, client_base, img, z, t):
+        """ 
+        Calls L{getImage} with '-sc' context
+        @rtype:     String
+        """
+        return self.getImage(r, client_base, img, z, t, '-sc')
+
+    def setOmeTiffImage (self, r, client_base, img, obj):
+        """ Calls L{setImage} with '-ometiff' context """
+        return self.setImage(r, client_base, img, 0, 0, obj, '-ometiff')
+
+    def getOmeTiffImage (self, r, client_base, img):
+        """ 
+        Calls L{getImage} with '-ometiff' context
+        @rtype:     String
+        """
+        return self.getImage(r, client_base, img, 0, 0, '-ometiff')
+
+
+    ##
+    # hierarchies (json)
+
+    def _json_key (self, r, client_base, obj, ctx=''):
+        """
+        Generates the hash and string key for storing json data based on
+        params above.
+        
+        @param r:               http request - not used
+        @param client_base:     server_id
+        @param obj:             ObjectWrapper
+        @param ctx:             Additional string for cache key
+        @return:                Cache key
+        @rtype:                 String
+        """
+        
+        if obj:
+            return ('json_%s' % client_base, '%s_%s/%s' % (obj.OMERO_CLASS, obj.id, ctx))
+        else:
+            return ('json_%s', % client_base, 'single/%s' % (client_base, ctx))
