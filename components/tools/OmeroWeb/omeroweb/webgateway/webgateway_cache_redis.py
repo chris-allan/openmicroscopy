@@ -19,6 +19,7 @@ from django.conf import settings
 import omero
 import logging
 import redis
+import re
 
 logger = logging.getLogger(__name__)
 
