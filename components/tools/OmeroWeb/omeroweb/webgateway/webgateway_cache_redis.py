@@ -115,6 +115,17 @@ class WebGatewayeCacheRedis(object):
         if self._redis.hdel(h,k) < 1:
             logger.error('failed to delete cached key %s:%s' % (h,k))
 
+    def _cache_get(self, h, k):
+        """
+        Obtains the object based upon hash_string and key
+        """
+        r = self._redis.hget(h,k)
+        if r is None:
+            logger.debug('  fail: %s' % k)
+        else:
+            logger.debug('cached: %s' % k)
+        return r
+
 
     ##
     # Thumb
@@ -170,14 +181,9 @@ class WebGatewayeCacheRedis(object):
         @rtype:                 String
         """
         (h,k) = self._thumb_key(client_base, user_id, iid, size)
-        r = self._redis.hget(h,k)
-        if r is None:
-            logger.debug('  fail: %s' % k)
-        else:
-            logger.debug('cached: %s' % k)
-        return r
+        return self._cache_get(h,k)
 
-    def clearThumb (self, r, client_base, user_id, iid, size=None):
+    def clearThumb(self, r, client_base, user_id, iid, size=None):
         """
         Clears thumbnail from cache. 
         
@@ -198,7 +204,7 @@ class WebGatewayeCacheRedis(object):
     ##
     # Image
 
-    def _image_key (self, r, client_base, img, z=0, t=0):
+    def _image_key(self, r, client_base, img, z=0, t=0):
         """
         Generates the hash and string key for caching the Image, based on parameters
         above, including rendering settings specified in the http request.
@@ -236,7 +242,7 @@ class WebGatewayeCacheRedis(object):
         else:
             return ('img_%s', '%s/%s' % (client_base, pre, str(iid)))
 
-    def setImage (self, r, client_base, img, z, t, obj, ctx=''):
+    def setImage(self, r, client_base, img, z, t, obj, ctx=''):
         """
         Puts image data into cache.
         
@@ -251,7 +257,7 @@ class WebGatewayeCacheRedis(object):
         (h,k) = self._image_key(r, client_base, img, z, t)
         return self._cache_set(h, '%s%s' % (k, ctx),obj)
 
-    def getImage (self, r, client_base, img, z, t, ctx=''):
+    def getImage(self, r, client_base, img, z, t, ctx=''):
         """
         Gets image data from cache. 
         
@@ -265,14 +271,9 @@ class WebGatewayeCacheRedis(object):
         @rtype:                 String
         """
         (h,k) = self._image_key(r, client_base, img, z, t)
-        r = self._redis.hget(h, '%s%s' % (k, ctx))
-        if r is None:
-            logger.debug('  fail: %s' % k)
-        else:
-            logger.debug('cached: %s' % k)
-        return r
+        return self._cache_get(h, '%s%s' % (k, ctx))
 
-    def clearImage (self, r, client_base, user_id, img, skipJson=False):
+    def clearImage(self, r, client_base, user_id, img, skipJson=False):
         """
         Clears image data from cache using default rendering settings (r=None) T and Z indexes ( = 0).
         TODO: Doesn't clear any data stored WITH r, t, or z specified in cache key? 
@@ -297,22 +298,22 @@ class WebGatewayeCacheRedis(object):
             self.clearJson(client_base, img)
         return True
 
-    def setSplitChannelImage (self, r, client_base, img, z, t, obj):
+    def setSplitChannelImage(self, r, client_base, img, z, t, obj):
         """ Calls L{setImage} with '-sc' context """
         return self.setImage(r, client_base, img, z, t, obj, '-sc')
 
-    def getSplitChannelImage (self, r, client_base, img, z, t):
+    def getSplitChannelImage(self, r, client_base, img, z, t):
         """ 
         Calls L{getImage} with '-sc' context
         @rtype:     String
         """
         return self.getImage(r, client_base, img, z, t, '-sc')
 
-    def setOmeTiffImage (self, r, client_base, img, obj):
+    def setOmeTiffImage(self, r, client_base, img, obj):
         """ Calls L{setImage} with '-ometiff' context """
         return self.setImage(r, client_base, img, 0, 0, obj, '-ometiff')
 
-    def getOmeTiffImage (self, r, client_base, img):
+    def getOmeTiffImage(self, r, client_base, img):
         """ 
         Calls L{getImage} with '-ometiff' context
         @rtype:     String
@@ -323,7 +324,7 @@ class WebGatewayeCacheRedis(object):
     ##
     # hierarchies (json)
 
-    def _json_key (self, r, client_base, obj, ctx=''):
+    def _json_key(self, r, client_base, obj, ctx=''):
         """
         Generates the hash and string key for storing json data based on
         params above.
@@ -340,3 +341,80 @@ class WebGatewayeCacheRedis(object):
             return ('json_%s' % client_base, '%s_%s/%s' % (obj.OMERO_CLASS, obj.id, ctx))
         else:
             return ('json_%s', % client_base, 'single/%s' % (client_base, ctx))
+
+    def setJson(self, r, client_base, obj, data, ctx=''):
+        """
+        Adds data to the json cache
+        
+        @param r:               http request - not used
+        @param client_base:     server_id for cache key
+        @param obj:             ObjectWrapper for cache key
+        @param data:            Data to cache
+        @param ctx:             context string used for cache key
+        @rtype:                 True
+        """
+        (h,k) = self._json_key(r, client_base, obj, ctx)
+        return self._cache_set(h, k, data)
+
+    def getJson(self, r, client_base, obj, ctx=''):
+        """
+        Gets data from the json cache
+        
+        @param r:               http request - not used
+        @param client_base:     server_id for cache key
+        @param obj:             ObjectWrapper for cache key
+        @param ctx:             context string used for cache key
+        @rtype:                 String or None
+        """
+        (h,k) = self._json_key(r, client_base, obj, ctx)
+        return self._cache_get(h,k)
+
+    def clearJson(self, client_base, obj, ctx=''):
+        """
+        TODO: document
+        WAS: Only handles Dataset obj, calling L{clearDatasetContents}
+        """
+        (h,k_toss) = self._json_key(None, client_base, obj, ctx)
+        keys = self._redis.hgetall(h)
+        for k in keys:
+            self._cache_del(h,k)
+        return True
+
+    def setDatasetContents(self, r, client_base, ds, data):
+        """
+        Adds data to the json cache using 'contents' as context
+        
+        @param r:               http request - not used
+        @param client_base:     server_id for cache key
+        @param ds:              ObjectWrapper for cache key
+        @param data:            Data to cache
+        @rtype:                 True
+        """
+        return self.setJson(r, client_base, ds, data, 'contents')
+
+    def getDatasetContents(self, r, client_base, ds):
+        """
+        Gets data from the json cache using 'contents' as context
+        
+        @param r:               http request - not used
+        @param client_base:     server_id for cache key
+        @param ds:              ObjectWrapper for cache key
+        @rtype:                 String or None
+        """
+        return self.getJson(r, client_base, ds, 'contents')
+
+    def clearDatasetContents(self, r, client_base, ds):
+        """
+        Clears data from the json cache using 'contents' as context
+        
+        @param r:               http request - not used
+        @param client_base:     server_id for cache key
+        @param ds:              ObjectWrapper for cache key
+        @rtype:                 True
+        """
+        
+        (h,k_toss) = self._json_key(r, client_base, ds, 'contents')
+        keys = self._redis.hgetall(h)
+        for k in keys:
+            self._cache_del(h,k)
+        return True
