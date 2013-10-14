@@ -245,7 +245,7 @@ class WebGatewayCacheRedis(object):
             else:
                 return (hash_string, key_string % ('%sx%s' % (str(z), str(t))))
         else:
-            return ('img_%s', '%s/%s' % (client_base, pre, str(iid)))
+            return ('img_%s' % client_base, '%s/%s' % (pre, str(iid)))
 
     def setImage(self, r, client_base, img, z, t, obj, ctx=''):
         """
