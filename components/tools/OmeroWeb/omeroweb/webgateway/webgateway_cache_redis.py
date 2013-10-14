@@ -22,7 +22,7 @@ import redis
 
 logger = logging.getLogger(__name__)
 
-class WebGatewayeCacheRedis(object):
+class WebGatewayCacheRedis(object):
     """
     Experiemental rewrite of WebGatewayeCache using Redis as the caching
     backend.
