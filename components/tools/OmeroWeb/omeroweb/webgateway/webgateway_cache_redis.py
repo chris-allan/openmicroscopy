@@ -78,9 +78,18 @@ class WebGatewayCacheRedis(object):
 
     def clear (self):
         """
-        Currently a no-op.
+        Attempts to clear all the values stored in redis as hash/key/cahce.
         """
-        pass
+        for k in self._redis.keys('*'):
+            try:
+                for i in self._redis.hgetall(k):
+                    self._cache_del(k, i)
+            except:
+                # We get exceptions on those items that are not hash/key
+                # caches. Currently choose to do nothing here and let
+                # redis deal with any key/value pairs that webcachegateway
+                # could not have created
+                pass
 
     def invalidateObject (self, client_base, user_id, obj):
         """

@@ -44,9 +44,7 @@ class TestWebGatewayCache(unittest.TestCase):
         # Make sure clear() nukes this
         self.cache.setThumb(self.request, 'test', uid, 1, 'thumbdata')
         assert self.cache.getThumb(self.request, 'test', uid, 1) == 'thumbdata', 'Thumb not properly cached'
-        #assert self.cache._thumb_cache._num_entries !=  0
         self.cache.clear()
-        #assert self.cache._thumb_cache._num_entries ==  0
 
     def testImageCache (self):
         uid = 123
@@ -90,16 +88,6 @@ class TestWebGatewayCache(unittest.TestCase):
         assert self.cache.getImage(self.request, 'test', img, 2, 3) is None
         self.cache.setImage(self.request, 'test', img, 2, 3, 'imagedata')
         assert self.cache.getImage(self.request, 'test', img, 2, 3) == 'imagedata'
-
-    #def testLocks (self):
-    #    wcache2 = WebGatewayCache()
-    #    #wcache2 will hold the lock
-    #    assert wcache2.tryLock()
-    #    assert not self.cache.tryLock()
-    #    assert wcache2.tryLock()
-    #    del wcache2
-    #    # The lock should have been removed
-    #    assert self.cache.tryLock()
 
     def testJsonCache (self):
         uid = 123
