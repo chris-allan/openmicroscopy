@@ -44,14 +44,7 @@ from omero.gateway import timeit, TimeIt
 import Ice
 import glob
 
-
 import settings
-
-#from models import StoredConnection
-
-from webgateway_cache import webgateway_cache, webgateway_tempfile #, CacheBase, webgateway_tempfile
-
-#cache = CacheBase()
 
 import logging, os, traceback, time, zipfile, shutil
 
@@ -59,6 +52,15 @@ from omeroweb.decorators import login_required, ConnCleaningHttpResponse
 from omeroweb.connector import Connector
 
 logger = logging.getLogger(__name__)
+
+CACHE_ENABLED = None
+try:
+    from webgateway_cache_redis import webgateway_cache
+    CACHE_ENABLED = True
+except:
+    logger.error('Redis not install, disabling caching')
+    CACHE_ENABLED = False
+from webgateway_tempfile import  webgateway_tempfile
 
 try:
     from PIL import Image

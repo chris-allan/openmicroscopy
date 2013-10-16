@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Experiemental webgateway cache rewrite using redis
+# Webgateway cache using redis
 #
 # Copyright (c) 2008, 2013 Glencoe Software, Inc. All rights reserved.
 #
@@ -18,7 +18,10 @@ from django.conf import settings
 
 import omero
 import logging
-import redis
+try:
+    import redis
+except:
+    raise
 import re
 
 logger = logging.getLogger(__name__)
