@@ -9,7 +9,13 @@ import os
 os.environ['DJANGO_SETTINGS_MODULE'] = 'unit.test_webgateway_cache_settings'
 
 import unittest
-from omeroweb.webgateway.webgateway_cache_redis import WebGatewayCacheRedis as WebGatewayCache
+
+try:
+    import redis
+    from omeroweb.webgateway.webgateway_cache_redis import WebGatewayCacheRedis as WebGatewayCache
+except:
+    from omeroweb.webgateway.webgateway_cache_redis import WebGatewayCacheNull as WebGatewayCache
+
 import django
 import omero
 from omero.gateway.scripts.testdb_create import *
