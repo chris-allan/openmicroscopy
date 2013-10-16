@@ -53,13 +53,7 @@ from omeroweb.connector import Connector
 
 logger = logging.getLogger(__name__)
 
-CACHE_ENABLED = None
-try:
-    from webgateway_cache_redis import webgateway_cache
-    CACHE_ENABLED = True
-except:
-    logger.error('Redis not install, disabling caching')
-    CACHE_ENABLED = False
+from webgateway_cache_redis import webgateway_cache
 from webgateway_tempfile import  webgateway_tempfile
 
 try:

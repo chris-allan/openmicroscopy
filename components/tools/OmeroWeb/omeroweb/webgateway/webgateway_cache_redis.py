@@ -18,30 +18,26 @@ from django.conf import settings
 
 import omero
 import logging
-try:
-    import redis
-except:
-    raise
-import re
 
 logger = logging.getLogger(__name__)
 
+CACHE_ENABLED = None
+try:
+    import redis
+    CACHE_ENABLED = True
+except:
+    logger.error('Redis Python module not found. Disabling caching.')
+    CACHE_ENABLED  = False
+import re
+
 FN_REGEX = re.compile('[#$,|]')
 
-class WebGatewayCacheRedis(object):
+class WebGatewayCacheNull(object):
     """
-    Experiemental rewrite of WebGatewayeCache using Redis as the caching
-    backend.
+    Base object for when no caching is enabled.
     """
-
     def __init__(self):
-        self._redis_host = getattr(settings, 'REDIS_HOST', 'localhost')
-        self._redis_port = getattr(settings, 'REDIS_PORT', 6379)
-        self._redis_db = getattr(settings, 'REDIS_DB', 0)
-        self._default_timeout = getattr(settings, 'REDIS_DEFAULT_TIMEOUT', 60)
-
-        self._redis = redis.StrictRedis(host=self._redis_host, \
-            port=self._redis_port, db=self._redis_db)
+        pass
 
     def tryLock(self):
         """
@@ -78,6 +74,100 @@ class WebGatewayCacheRedis(object):
         """
         for e in events:
             self.handleEvent(client_base, e)
+
+    def clear(self):
+        pass
+
+    def invalidateObject (self, client_base, user_id, obj):
+        pass
+
+    def setThumb(self, r, client_base, user_id, iid, obj, size=()):
+        return None
+
+    def getThumb(self, r, client_base, user_id, iid, size=()):
+        return None
+
+    def clearThumb(self, r, client_base, user_id, iid, size=None):
+        return True
+
+    def setImage(self, r, client_base, img, z, t, obj, ctx=''):
+        return None
+
+    def getImage(self, r, client_base, img, z, t, ctx=''):
+        return None
+
+    def clearImage(self, r, client_base, user_id, img, skipJson=False):
+        return None
+
+    def setSplitChannelImage(self, r, client_base, img, z, t, obj):
+        """ Calls L{setImage} with '-sc' context """
+        return self.setImage(r, client_base, img, z, t, obj, '-sc')
+
+    def getSplitChannelImage(self, r, client_base, img, z, t):
+        """
+        Calls L{getImage} with '-sc' context
+        @rtype:     String
+        """
+        return self.getImage(r, client_base, img, z, t, '-sc')
+
+    def setOmeTiffImage(self, r, client_base, img, obj):
+        """ Calls L{setImage} with '-ometiff' context """
+        return self.setImage(r, client_base, img, 0, 0, obj, '-ometiff')
+
+    def getOmeTiffImage(self, r, client_base, img):
+        """
+        Calls L{getImage} with '-ometiff' context
+        @rtype:     String
+        """
+        return self.getImage(r, client_base, img, 0, 0, '-ometiff')
+
+    def setJson(self, r, client_base, obj, data, ctx=''):
+        return None
+
+    def getJson(self, r, client_base, obj, ctx=''):
+        return None
+
+    def clearJson(self, client_base, obj, ctx=''):
+        return True
+
+    def setDatasetContents(self, r, client_base, ds, data):
+        """
+        Adds data to the json cache using 'contents' as context
+
+        @param r:               http request - not used
+        @param client_base:     server_id for cache key
+        @param ds:              ObjectWrapper for cache key
+        @param data:            Data to cache
+        @rtype:                 True
+        """
+        return self.setJson(r, client_base, ds, data, 'contents')
+
+    def getDatasetContents(self, r, client_base, ds):
+        """
+        Gets data from the json cache using 'contents' as context
+
+        @param r:               http request - not used
+        @param client_base:     server_id for cache key
+        @param ds:              ObjectWrapper for cache key
+        @rtype:                 String or None
+        """
+        return self.getJson(r, client_base, ds, 'contents')
+
+
+class WebGatewayCacheRedis(WebGatewayCacheNull):
+    """
+    Experiemental rewrite of WebGatewayeCache using Redis as the caching
+    backend.
+    """
+
+    def __init__(self):
+        self._redis_host = getattr(settings, 'REDIS_HOST', 'localhost')
+        self._redis_port = getattr(settings, 'REDIS_PORT', 6379)
+        self._redis_db = getattr(settings, 'REDIS_DB', 0)
+        self._default_timeout = getattr(settings, 'REDIS_DEFAULT_TIMEOUT', 60)
+
+        self._redis = redis.StrictRedis(host=self._redis_host, \
+            port=self._redis_port, db=self._redis_db)
 
     def clear (self):
         """
@@ -315,28 +405,6 @@ class WebGatewayCacheRedis(object):
             self.clearJson(client_base, img)
         return True
 
-    def setSplitChannelImage(self, r, client_base, img, z, t, obj):
-        """ Calls L{setImage} with '-sc' context """
-        return self.setImage(r, client_base, img, z, t, obj, '-sc')
-
-    def getSplitChannelImage(self, r, client_base, img, z, t):
-        """
-        Calls L{getImage} with '-sc' context
-        @rtype:     String
-        """
-        return self.getImage(r, client_base, img, z, t, '-sc')
-
-    def setOmeTiffImage(self, r, client_base, img, obj):
-        """ Calls L{setImage} with '-ometiff' context """
-        return self.setImage(r, client_base, img, 0, 0, obj, '-ometiff')
-
-    def getOmeTiffImage(self, r, client_base, img):
-        """
-        Calls L{getImage} with '-ometiff' context
-        @rtype:     String
-        """
-        return self.getImage(r, client_base, img, 0, 0, '-ometiff')
-
 
     ##
     # hierarchies (json)
@@ -397,29 +465,6 @@ class WebGatewayCacheRedis(object):
             self._cache_del(h,k)
         return True
 
-    def setDatasetContents(self, r, client_base, ds, data):
-        """
-        Adds data to the json cache using 'contents' as context
-
-        @param r:               http request - not used
-        @param client_base:     server_id for cache key
-        @param ds:              ObjectWrapper for cache key
-        @param data:            Data to cache
-        @rtype:                 True
-        """
-        return self.setJson(r, client_base, ds, data, 'contents')
-
-    def getDatasetContents(self, r, client_base, ds):
-        """
-        Gets data from the json cache using 'contents' as context
-
-        @param r:               http request - not used
-        @param client_base:     server_id for cache key
-        @param ds:              ObjectWrapper for cache key
-        @rtype:                 String or None
-        """
-        return self.getJson(r, client_base, ds, 'contents')
-
     def clearDatasetContents(self, r, client_base, ds):
         """
         Clears data from the json cache using 'contents' as context
@@ -436,4 +481,7 @@ class WebGatewayCacheRedis(object):
             self._cache_del(h,k)
         return True
 
-webgateway_cache = WebGatewayCacheRedis()
+if CACHE_ENABLED:
+    webgateway_cache = WebGatewayCacheRedis()
+else:
+    webgateway_cache = WebGatewayCacheNull()
