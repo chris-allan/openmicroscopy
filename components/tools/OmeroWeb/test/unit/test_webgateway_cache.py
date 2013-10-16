@@ -18,8 +18,6 @@ try:
 except:
     from omeroweb.webgateway.webgateway_cache_redis import WebGatewayCacheNull as WebGatewayCache
 
-print "REDIS_ENABLE: %s" % REDIS_ENABLE
-
 import django
 import omero
 from omero.gateway.scripts.testdb_create import *
