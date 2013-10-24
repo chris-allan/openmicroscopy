@@ -13,6 +13,8 @@
 #
 # Author: Carlos Neves <carlos(at)glencoesoftware.com>
 
+from django.conf import settings
+
 import logging
 import time, os, shutil, stat
 
