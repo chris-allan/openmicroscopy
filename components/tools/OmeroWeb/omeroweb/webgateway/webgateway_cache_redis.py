@@ -164,7 +164,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         self._redis_host = getattr(settings, 'REDIS_HOST', 'localhost')
         self._redis_port = getattr(settings, 'REDIS_PORT', 6379)
         self._redis_db = getattr(settings, 'REDIS_DB', 0)
-        self._default_timeout = getattr(settings, 'REDIS_DEFAULT_TIMEOUT', 60)
+        self._default_timeouts = getattr(settings, 'REDIS_DEFAULT_TIMEOUTS', None)
 
         self._redis = redis.StrictRedis(host=self._redis_host, \
             port=self._redis_port, db=self._redis_db)
@@ -199,7 +199,20 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
             logger.debug('unhandled object type: %s' % obj.OMERO_CLASS)
             self.clearJson(client_base, obj)
 
-    def _cache_set(self, h, k, obj, timeout=None):
+    def _get_timeout(self, key):
+        """
+        Obtains the timeout for a given cache. If no cache is found for key,
+        will default to 'None'.
+
+        @oaram key:             The cache key to look for.
+        @return:                The timeout found, or 'None'.
+        """
+        if type(self._default_timeouts) is dict:
+            if self._default_timeouts.hash_key(key):
+                return self._default_timeouts[key]
+        return None
+
+    def _cache_set(self, h, k, obj, timeout):
         """
         Sets the cache.
 
@@ -208,12 +221,10 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @param obj:             The object to cache
         @param timeout:         The timeout for the object
         """
-        if timeout is None:
-            timeout = self._default_timeout
-        self._redis.hset(h,k,obj)
-        if self._redis.ttl(h) < 0:
-            self._redis.expire(h, timeout)
-        return True
+        self._redis.hset(h,k,obj)
+        if timeout is not None:
+            self._redis.expire(h, timeout)
+        return True
 
     def _cache_del(self, h, k):
         """
@@ -273,7 +284,8 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         """
 
         (h,k) = self._thumb_key(client_base, user_id, iid, size)
-        return self._cache_set(h,k,obj)
+
+        return self._cache_set(h,k,obj, self._get_timeout('thumbnail'))
 
     def getThumb(self, r, client_base, user_id, iid, size=()):
         """
@@ -362,7 +374,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @param ctx:             Additional string for cache key
         """
         (h,k) = self._image_key(r, client_base, img, z, t)
-        return self._cache_set(h, '%s%s' % (k, ctx),obj)
+        return self._cache_set(h, '%s%s' % (k, ctx),obj,self._get_timeout('image'))
 
     def getImage(self, r, client_base, img, z, t, ctx=''):
         """
@@ -439,7 +451,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @rtype:                 True
         """
         (h,k) = self._json_key(r, client_base, obj, ctx)
-        return self._cache_set(h, k, data)
+        return self._cache_set(h, k, data, self._get_timeout('json'))
 
     def getJson(self, r, client_base, obj, ctx=''):
         """
