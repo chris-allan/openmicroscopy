@@ -208,7 +208,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @return:                The timeout found, or 'None'.
         """
         if type(self._default_timeouts) is dict:
-            if self._default_timeouts.hash_key(key):
+            if self._default_timeouts.has_key(key):
                 return self._default_timeouts[key]
         return None
 
