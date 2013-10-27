@@ -6,3 +6,6 @@
     Django settings for the test_webgateway_cache unit tests.
 """
 
+REDIS_HOST="localhost"
+REDIS_PORT=6379
+REDIS_DB=0

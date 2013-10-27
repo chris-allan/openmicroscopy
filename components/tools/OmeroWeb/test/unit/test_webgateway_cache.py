@@ -6,6 +6,7 @@
 """
 
 import os
+os.environ['DJANGO_SETTINGS_MODULE'] = 'unit.test_webgateway_cache_settings'
 
 import unittest
 
