@@ -207,9 +207,8 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @oaram key:             The cache key to look for.
         @return:                The timeout found, or 'None'.
         """
-        if type(self._default_timeouts) is dict:
-            if self._default_timeouts.has_key(key):
-                return self._default_timeouts[key]
+        if self._default_timeouts.has_key(key):
+            return self._default_timeouts[key]
         return None
 
     def _cache_set(self, h, k, obj, timeout):
