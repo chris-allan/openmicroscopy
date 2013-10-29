@@ -1,28 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
+# 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# #                Django settings for OMERO.web project.               # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# #                Django settings for OMERO.web project.               # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#
-#
-# Copyright (c) 2008 University of Dundee.
-#
+# 
+# 
+# Copyright (c) 2008 University of Dundee. 
+# 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
-#
+# 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-#
+# 
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+# 
 # Author: Aleksandra Tarkowska <A(dot)Tarkowska(at)dundee(dot)ac(dot)uk>, 2008.
-#
+# 
 # Version: 1.0
 #
 
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 # A boolean that turns on/off debug mode.
 # handler404 and handler500 works only when False
 if os.environ.has_key('OMERO_HOME'):
-    OMERO_HOME =os.environ.get('OMERO_HOME')
+    OMERO_HOME =os.environ.get('OMERO_HOME') 
 else:
     OMERO_HOME = os.path.join(os.path.dirname(__file__), '..', '..', '..')
     OMERO_HOME = os.path.normpath(OMERO_HOME)
@@ -87,7 +87,7 @@ LOGGING = {
             'maxBytes': 1024*1024*5, # 5 MB
             'backupCount': 5,
             'formatter':'standard',
-        },
+        },  
         'request_handler': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
@@ -254,15 +254,15 @@ CUSTOM_SETTINGS_MAPPINGS = {
             '"/omero/figure_scripts/Split_View_Figure.py", "/omero/figure_scripts/Thumbnail_Figure.py", '\
             '"/omero/figure_scripts/ROI_Split_Figure.py", "/omero/export_scripts/Make_Movie.py",'\
             '"/omero/setup_scripts/FLIM_initialise.py", "/omero/import_scripts/Populate_ROI.py"]', parse_paths],
-
+    
     # Add links to the top header: links are ['Link Text', 'link'], where the url is reverse("link") OR simply 'link' (for external urls)
     "omero.web.ui.top_links": ["TOP_LINKS", '[]', json.loads],  # E.g. '[["Webtest", "webtest_index"]]'
-
+    
     # Add plugins to the right-hand & center panels: plugins are ['Label', 'include.js', 'div_id']. The javascript loads data into $('#div_id').
     "omero.web.ui.right_plugins": ["RIGHT_PLUGINS", '[["Acquisition", "webclient/data/includes/right_plugin.acquisition.js.html", "metadata_tab"],'\
             #'["ROIs", "webtest/webclient_plugins/right_plugin.rois.js.html", "image_roi_tab"],'\
             '["Preview", "webclient/data/includes/right_plugin.preview.js.html", "preview_tab"]]', json.loads],
-
+            
     # E.g. Center plugin: ["Channel overlay", "webtest/webclient_plugins/center_plugin.overlay.js.html", "channel_overlay_panel"]
     "omero.web.ui.center_plugins": ["CENTER_PLUGINS", '['\
             #'["Split View", "webclient/data/includes/center_plugin.splitview.js.html", "split_view_panel"],'\
@@ -271,7 +271,7 @@ CUSTOM_SETTINGS_MAPPINGS = {
 
     # sharing no longer use this variable. replaced by request.build_absolute_uri
     # after testing this line should be removed.
-    # "omero.web.application_host": ["APPLICATION_HOST", None, remove_slash],
+    # "omero.web.application_host": ["APPLICATION_HOST", None, remove_slash], 
 
     # WEBSTART
     "omero.web.webstart_jar": ["WEBSTART_JAR", "omero.insight.jar", str],
@@ -317,10 +317,10 @@ if not DEBUG:
     LOGGING['loggers']['django']['level'] = 'INFO'
     LOGGING['loggers']['']['level'] = 'INFO'
 
-# TEMPLATE_DEBUG: A boolean that turns on/off template debug mode. If this is True, the fancy
-# error page will display a detailed report for any TemplateSyntaxError. This report contains
+# TEMPLATE_DEBUG: A boolean that turns on/off template debug mode. If this is True, the fancy 
+# error page will display a detailed report for any TemplateSyntaxError. This report contains 
 # the relevant snippet of the template, with the appropriate line highlighted.
-# Note that Django only displays fancy error pages if DEBUG is True, alternatively error
+# Note that Django only displays fancy error pages if DEBUG is True, alternatively error 
 # is handled by:
 #    handler404 = "omeroweb.feedback.views.handler404"
 #    handler500 = "omeroweb.feedback.views.handler500"
@@ -334,7 +334,7 @@ for key in sorted(CUSTOM_SETTINGS_MAPPINGS):
     global_value = globals().get(global_name, None)
     if global_name.isupper():
         logger.debug("%s = %r (source:%s)", global_name, cleanse_setting(global_name, global_value), source)
-
+        
 SITE_ID = 1
 
 # Local time zone for this installation. Choices can be found here:
@@ -349,18 +349,18 @@ FIRST_DAY_OF_WEEK = 0     # 0-Monday, ... 6-Sunday
 # in standard language format. For example, U.S. English is "en-us".
 LANGUAGE_CODE = 'en-gb'
 
-# SECRET_KEY: A secret key for this particular Django installation. Used to provide a seed
-# in secret-key hashing algorithms. Set this to a random string -- the longer, the better.
-# django-admin.py startproject creates one automatically.
+# SECRET_KEY: A secret key for this particular Django installation. Used to provide a seed 
+# in secret-key hashing algorithms. Set this to a random string -- the longer, the better. 
+# django-admin.py startproject creates one automatically. 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '@@k%g#7=%4b6ib7yr1tloma&g0s2nni6ljf!m0h&x9c712c7yj'
 
-# USE_I18N: A boolean that specifies whether Django's internationalization system should be enabled.
+# USE_I18N: A boolean that specifies whether Django's internationalization system should be enabled. 
 # This provides an easy way to turn it off, for performance. If this is set to False, Django will
 # make some optimizations so as not to load the internationalization machinery.
 USE_I18N = True
 
-# MIDDLEWARE_CLASSES: A tuple of middleware classes to use.
+# MIDDLEWARE_CLASSES: A tuple of middleware classes to use. 
 # See https://docs.djangoproject.com/en/1.3/topics/http/middleware/.
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
@@ -370,40 +370,40 @@ MIDDLEWARE_CLASSES = (
 )
 
 
-# ROOT_URLCONF: A string representing the full Python import path to your root URLconf.
+# ROOT_URLCONF: A string representing the full Python import path to your root URLconf. 
 # For example: "mydjangoapps.urls". Can be overridden on a per-request basis by setting
 # the attribute urlconf on the incoming HttpRequest object.
 ROOT_URLCONF = 'omeroweb.urls'
 
-# STATICFILES_FINDERS: The list of finder backends that know how to find static files
-# in various locations. The default will find files stored in the STATICFILES_DIRS setting
-# (using django.contrib.staticfiles.finders.FileSystemFinder) and in a static subdirectory
+# STATICFILES_FINDERS: The list of finder backends that know how to find static files 
+# in various locations. The default will find files stored in the STATICFILES_DIRS setting 
+# (using django.contrib.staticfiles.finders.FileSystemFinder) and in a static subdirectory 
 # of each app (using django.contrib.staticfiles.finders.AppDirectoriesFinder)
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder"
 )
 
-# STATIC_URL: URL to use when referring to static files located in STATIC_ROOT.
+# STATIC_URL: URL to use when referring to static files located in STATIC_ROOT. 
 # Example: "/site_media/static/" or "http://static.example.com/".
-# If not None, this will be used as the base path for media definitions and the staticfiles
+# If not None, this will be used as the base path for media definitions and the staticfiles 
 # app. It must end in a slash if set to a non-empty value.
 # This var is configurable by omero.web.static_url STATIC_URL = '/static/'
 
-# STATIC_ROOT: The absolute path to the directory where collectstatic will collect static
-# files for deployment. If the staticfiles contrib app is enabled (default) the collectstatic
+# STATIC_ROOT: The absolute path to the directory where collectstatic will collect static 
+# files for deployment. If the staticfiles contrib app is enabled (default) the collectstatic 
 # management command will collect static files into this directory.
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static').replace('\\','/')
 
 
-# STATICFILES_DIRS: This setting defines the additional locations the staticfiles app will
-# traverse if the FileSystemFinder finder is enabled, e.g. if you use the collectstatic or
+# STATICFILES_DIRS: This setting defines the additional locations the staticfiles app will 
+# traverse if the FileSystemFinder finder is enabled, e.g. if you use the collectstatic or 
 # findstatic management command or use the static file serving view.
 if WEBSTART:
     STATICFILES_DIRS += (("webstart/jars", INSIGHT_JARS),)
 
-# TEMPLATE_CONTEXT_PROCESSORS: A tuple of callables that are used to populate the context
-# in RequestContext. These callables take a request object as their argument and return
+# TEMPLATE_CONTEXT_PROCESSORS: A tuple of callables that are used to populate the context 
+# in RequestContext. These callables take a request object as their argument and return 
 # a dictionary of items to be merged into the context.
 TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.debug",
@@ -413,23 +413,23 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.contrib.messages.context_processors.messages"
 )
 
-# TEMPLATE_LOADERS: A tuple of template loader classes, specified as strings. Each Loader class
-# knows how to import templates from a particular source. Optionally, a tuple can be used
-# instead of a string. The first item in the tuple should be the Loader's module, subsequent items
+# TEMPLATE_LOADERS: A tuple of template loader classes, specified as strings. Each Loader class 
+# knows how to import templates from a particular source. Optionally, a tuple can be used 
+# instead of a string. The first item in the tuple should be the Loader's module, subsequent items 
 # are passed to the Loader during initialization.
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
 )
 
-# TEMPLATE_DIRS: List of locations of the template source files, in search order. Note that these
+# TEMPLATE_DIRS: List of locations of the template source files, in search order. Note that these 
 # paths should use Unix-style forward slashes, even on Windows.
-# Put strings here, like "/home/html/django_templates" or "C:/www/django/templates". Always use
+# Put strings here, like "/home/html/django_templates" or "C:/www/django/templates". Always use 
 # forward slashes, even on Windows. Don't forget to use absolute paths, not relative paths.
 # TEMPLATE_DIRS = ()
 
-# INSTALLED_APPS: A tuple of strings designating all applications that are enabled in this Django
-# installation. Each string should be a full Python path to a Python package that contains
+# INSTALLED_APPS: A tuple of strings designating all applications that are enabled in this Django 
+# installation. Each string should be a full Python path to a Python package that contains 
 # a Django application, as created by django-admin.py startapp.
 INSTALLED_APPS = (
     'django.contrib.staticfiles',
@@ -445,7 +445,7 @@ INSTALLED_APPS = (
     'omeroweb.webtest',
     'omeroweb.webredirect',
     'omeroweb.webstart',
-
+    
 )
 
 
@@ -458,17 +458,17 @@ for app in ADDITIONAL_APPS:
         logger.debug("Couldn't import settings from app: %s" % app)
 
 
-# FEEDBACK_URL: Used in feedback.sendfeedback.SendFeedback class in order to submit
+# FEEDBACK_URL: Used in feedback.sendfeedback.SendFeedback class in order to submit 
 # error or comment messages to http://qa.openmicroscopy.org.uk.
 FEEDBACK_URL = "qa.openmicroscopy.org.uk:80"
 
-# IGNORABLE_404_STARTS:
+# IGNORABLE_404_STARTS: 
 # Default: ('/cgi-bin/', '/_vti_bin', '/_vti_inf')
-# IGNORABLE_404_ENDS:
+# IGNORABLE_404_ENDS: 
 # Default: ('mail.pl', 'mailform.pl', 'mail.cgi', 'mailform.cgi', 'favicon.ico', '.php')
 
 # SESSION_FILE_PATH: If you're using file-based session storage, this sets the directory in which Django
-# will store session data. When the default value (None) is used, Django will use the standard temporary
+# will store session data. When the default value (None) is used, Django will use the standard temporary 
 # directory for the system.
 SESSION_FILE_PATH = tempfile.gettempdir()
 
@@ -481,7 +481,7 @@ SESSION_COOKIE_AGE = 86400 # 1 day in sec (86400)
 # FILE_UPLOAD_TEMP_DIR: The directory to store data temporarily while uploading files.
 FILE_UPLOAD_TEMP_DIR = tempfile.gettempdir()
 
-# # FILE_UPLOAD_MAX_MEMORY_SIZE: The maximum size (in bytes) that an upload will be before it gets streamed
+# # FILE_UPLOAD_MAX_MEMORY_SIZE: The maximum size (in bytes) that an upload will be before it gets streamed 
 # to the file system.
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440 #default 2621440 (i.e. 2.5 MB).
 
@@ -493,7 +493,7 @@ DEFAULT_IMG = os.path.join(os.path.dirname(__file__), 'webgateway', 'static', 'w
 # avatar while experimenter photo can't be retrieved from the server.
 DEFAULT_USER = os.path.join(os.path.dirname(__file__), 'webgateway', 'static', 'webgateway', 'img', 'personal32.png').replace('\\','/')
 
-# MANAGERS: A tuple in the same format as ADMINS that specifies who should get broken-link notifications when
+# MANAGERS: A tuple in the same format as ADMINS that specifies who should get broken-link notifications when 
 # SEND_BROKEN_LINK_EMAILS=True.
 MANAGERS = ADMINS
 
@@ -505,11 +505,11 @@ except:
 
 EMAIL_TEMPLATES = {
     'create_share': {
-        'html_content':'<p>Hi,</p><p>I would like to share some of my data with you.<br/>Please find it on the <a href="%s?server=%i">%s?server=%i</a>.</p><p>%s</p>',
+        'html_content':'<p>Hi,</p><p>I would like to share some of my data with you.<br/>Please find it on the <a href="%s?server=%i">%s?server=%i</a>.</p><p>%s</p>', 
         'text_content':'Hi, I would like to share some of my data with you. Please find it on the %s?server=%i. /n %s'
     },
     'add_member_to_share': {
-        'html_content':'<p>Hi,</p><p>I would like to share some of my data with you.<br/>Please find it on the <a href="%s?server=%i">%s?server=%i</a>.</p><p>%s</p>',
+        'html_content':'<p>Hi,</p><p>I would like to share some of my data with you.<br/>Please find it on the <a href="%s?server=%i">%s?server=%i</a>.</p><p>%s</p>', 
         'text_content':'Hi, I would like to share some of my data with you. Please find it on the %s?server=%i. /n %s'
     },
     'remove_member_from_share': {
@@ -522,7 +522,7 @@ EMAIL_TEMPLATES = {
     }
 }
 
-# Load server list and freeze
+# Load server list and freeze 
 from connector import Server
 def load_server_list():
     for s in SERVER_LIST:
