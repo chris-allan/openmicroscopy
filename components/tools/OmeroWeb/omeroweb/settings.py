@@ -284,6 +284,12 @@ CUSTOM_SETTINGS_MAPPINGS = {
     "omero.web.webstart_vendor": ["WEBSTART_VENDOR", "The Open Microscopy Environment", str],
     "omero.web.webstart_homepage": ["WEBSTART_HOMEPAGE", "http://www.openmicroscopy.org", str],
     "omero.web.nanoxml_jar": ["NANOXML_JAR", "nanoxml.jar", str],
+
+    # WEBCACHE GATEWAY
+    "omero.web.redis.host": ["REDIS_HOST", "localhost", str],
+    "omero.web.redis.port": ["REDIS_PORT", 6379, int],
+    "omero.web.redis.db": ["REDIS_DB", 0, int],
+    "omero.web.redis.timeouts": ["REDIS_DEFAULT_TIMEOUTS", None, dict],
 }
 
 
