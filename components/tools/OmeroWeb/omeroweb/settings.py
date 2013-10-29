@@ -289,7 +289,7 @@ CUSTOM_SETTINGS_MAPPINGS = {
     "omero.web.redis.host": ["REDIS_HOST", "localhost", str],
     "omero.web.redis.port": ["REDIS_PORT", 6379, int],
     "omero.web.redis.db": ["REDIS_DB", 0, int],
-    "omero.web.redis.timeouts": ["REDIS_DEFAULT_TIMEOUTS", {}, dict],
+    "omero.web.redis.timeouts": ["REDIS_DEFAULT_TIMEOUTS", {}, json.loads],
 }
 
 
