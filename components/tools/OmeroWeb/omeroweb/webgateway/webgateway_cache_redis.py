@@ -18,6 +18,7 @@ from django.conf import settings
 
 import omero
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -165,24 +166,33 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         self._redis_port = getattr(settings, 'REDIS_PORT', 6379)
         self._redis_db = getattr(settings, 'REDIS_DB', 0)
         self._default_timeouts = getattr(settings, 'REDIS_DEFAULT_TIMEOUTS', None)
+        self._connected = False
+        self._connect_to_redis()
 
-        self._redis = redis.StrictRedis(host=self._redis_host, \
-            port=self._redis_port, db=self._redis_db)
+    def _connect_to_redis(self):
+        """
+        Wraps our redis connection in a reproducable way
+        """
+        if not self._connected:
+            try:
+                self._redis = redis.StrictRedis(host=self._redis_host, \
+                    port=self._redis_port, db=self._redis_db)
+                self._connected = True
+            except:
+                self._connected = False
+                logger.warning('Unable to connect to Redis DB for caching')
 
     def clear (self):
         """
         Attempts to clear all the values stored in redis as hash/key/cahce.
         """
-        for k in self._redis.keys('*'):
+        if self._connected:
             try:
-                for i in self._redis.hgetall(k):
-                    self._cache_del(k, i)
+                self._redis.flushall()
             except:
-                # We get exceptions on those items that are not hash/key
-                # caches. Currently choose to do nothing here and let
-                # redis deal with any key/value pairs that webcachegateway
-                # could not have created
-                pass
+                logger.warning("Problem trying to clear the Redis cache")
+                for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
 
     def invalidateObject (self, client_base, user_id, obj):
         """
@@ -220,23 +230,43 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @param obj:             The object to cache
         @param timeout:         The timeout for the object
         """
-        self._redis.hset(h,k,obj)
-        if timeout is not None:
-            self._redis.expire(h, timeout)
+        if self._connected:
+            try:
+                self._redis.hset(h,k,obj)
+                if timeout is not None:
+                    self._redis.expire(h, timeout)
+            except:
+                logger.warning("Problem trying to cache a key with Redis")
+                for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
+
+
         return True
 
     def _cache_del(self, h, k):
         """
         Delete an element from the cache given hash_string and key
         """
-        if self._redis.hdel(h,k) < 1:
-            logger.error('failed to delete cached key %s:%s' % (h,k))
+        try:
+            if self._redis.hdel(h,k) < 1:
+                logger.error('failed to delete cached key %s:%s' % (h,k))
+        except:
+            logger.warning("Problem deleting a key from Redis")
+            for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
 
     def _cache_get(self, h, k):
         """
         Obtains the object based upon hash_string and key
         """
-        r = self._redis.hget(h,k)
+        r = None
+        try:
+            r = self._redis.hget(h,k)
+        except:
+            logger.warning('Problem getting a key from Redis')
+            for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
+
         if r is None:
             logger.debug('  fail: %s' % k)
         else:
