@@ -220,10 +220,10 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @param obj:             The object to cache
         @param timeout:         The timeout for the object
         """
-        self._redis.hset(h,k,obj)
-        if timeout is not None:
-            self._redis.expire(h, timeout)
-        return True
+        self._redis.hset(h,k,obj)
+        if timeout is not None:
+            self._redis.expire(h, timeout)
+        return True
 
     def _cache_del(self, h, k):
         """
