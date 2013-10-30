@@ -27,7 +27,7 @@ try:
     import redis
     CACHE_ENABLED = True
 except:
-    logger.error('Redis Python module not found. Disabling caching.')
+    logger.warning('Redis Python module not found. Disabling caching.')
     CACHE_ENABLED  = False
 import re
 
