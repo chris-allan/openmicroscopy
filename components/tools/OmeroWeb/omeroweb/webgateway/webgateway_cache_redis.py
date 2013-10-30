@@ -181,6 +181,8 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
             except:
                 self._connected = False
                 logger.warning('Unable to connect to Redis DB for caching')
+                for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
 
     def clear (self):
         """
@@ -342,10 +344,16 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @param size:            Size used for cache key. Tuple
         @return:                True
         """
-        (h,k_toss) = self._thumb_key(client_base, user_id, iid, size)
-        keys = self._redis.hgetall(h)
-        for k in keys:
-            self._cache_del(h,k)
+        if self._connected:
+            try:
+                (h,k_toss) = self._thumb_key(client_base, user_id, iid, size)
+                keys = self._redis.hgetall(h)
+                for k in keys:
+                    self._cache_del(h,k)
+            except:
+                logger.warning('Could not clear thumbnails from cache')
+                for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
         return True
 
 
@@ -434,16 +442,21 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @param obj:             Data to cache
         @param rtype:           True
         """
-
-        (h,k_toss) = self._image_key(None, client_base, img)
-        keys = self._redis.hgetall(h)
-        for k in keys:
-            self._cache_del(h,k)
-        # do the thumb too
-        self.clearThumb(r, client_base, user_id, img.getId())
-        # and json data
-        if not skipJson:
-            self.clearJson(client_base, img)
+        if self._connected:
+            (h,k_toss) = self._image_key(None, client_base, img)
+            try:
+                keys = self._redis.hgetall(h)
+                for k in keys:
+                    self._cache_del(h,k)
+            except:
+                logger.warning('Could not clear image cache')
+                for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
+            # do the thumb too
+            self.clearThumb(r, client_base, user_id, img.getId())
+            # and json data
+            if not skipJson:
+                self.clearJson(client_base, img)
         return True
 
 
@@ -497,13 +510,24 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
 
     def clearJson(self, client_base, obj, ctx=''):
         """
-        TODO: document
+        Clears image data from cache using default rendering settings (r=None) T and Z indexes ( = 0).
+
+        @param client_base:     server_id for cache key
+        @param obj:             Data to cache
+        @param ctx:             context string used for cache key
+        @return:           True
         WAS: Only handles Dataset obj, calling L{clearDatasetContents}
         """
-        (h,k_toss) = self._json_key(None, client_base, obj, ctx)
-        keys = self._redis.hgetall(h)
-        for k in keys:
-            self._cache_del(h,k)
+        if self._connected:
+            (h,k_toss) = self._json_key(None, client_base, obj, ctx)
+            try:
+                keys = self._redis.hgetall(h)
+                for k in keys:
+                    self._cache_del(h,k)
+            except:
+                logger.warning('Could not clear JSON cache')
+                for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
         return True
 
     def clearDatasetContents(self, r, client_base, ds):
@@ -515,11 +539,16 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @param ds:              ObjectWrapper for cache key
         @rtype:                 True
         """
-
-        (h,k_toss) = self._json_key(r, client_base, ds, 'contents')
-        keys = self._redis.hgetall(h)
-        for k in keys:
-            self._cache_del(h,k)
+        if self._connected:
+            (h,k_toss) = self._json_key(r, client_base, ds, 'contents')
+            try:
+                keys = self._redis.hgetall(h)
+                for k in keys:
+                    self._cache_del(h,k)
+            except:
+                logger.warning('Unable to clear json cache using contents as context')
+                for w in traceback.format_exc().splitlines():
+                    logger.debug(w)
         return True
 
 if CACHE_ENABLED:
