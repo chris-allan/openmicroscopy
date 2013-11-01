@@ -27,7 +27,7 @@ try:
     import redis
     CACHE_ENABLED = True
 except:
-    logger.warning('Redis Python module not found. Disabling caching.')
+    logger.info('Redis Python module not found.  WebGateway caching cannot be enabled')
     CACHE_ENABLED  = False
 import re
 
@@ -190,7 +190,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         """
         if self._connected:
             try:
-                self._redis.flushall()
+                self._redis.flushdb()
             except:
                 logger.warning("Problem trying to clear the Redis cache")
                 for w in traceback.format_exc().splitlines():
