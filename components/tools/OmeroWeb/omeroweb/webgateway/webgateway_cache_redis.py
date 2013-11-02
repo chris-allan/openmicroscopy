@@ -291,7 +291,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @return (hash_string, key_string)
         """
         pre = str(iid)[:-4]
-        hash_string = 'thumb_user_%s' % client_base
+        hash_string = 'thumb_user_%s_%s' % (client_base, str(iid))
         key_string = ''
         if len(pre) == 0:
             pre = '0'
@@ -389,7 +389,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
             q = r.get('q', '')
             region = r.get('region', '')
             tile = r.get('tile', '')
-            hash_string = 'img_%s' % client_base
+            hash_string = 'img_%s_%s' % (client_base, str(iid))
             key_string = '%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (pre, str(iid), c, m, q, region, tile)
             if p:
                 return (hash_string, key_string % ('%s-%s' % (p, str(t))))
