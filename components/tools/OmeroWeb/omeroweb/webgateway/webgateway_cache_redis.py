@@ -166,6 +166,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         self._redis_port = getattr(settings, 'REDIS_PORT', 6379)
         self._redis_db = getattr(settings, 'REDIS_DB', 0)
         self._default_timeouts = getattr(settings, 'REDIS_DEFAULT_TIMEOUTS', None)
+        #self._image_hashname = getattr(settings, 'REDIS_IMAGE_HASHNAME',)
         self._connected = False
         self._connect_to_redis()
 
@@ -290,15 +291,12 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
 
         @return (hash_string, key_string)
         """
-        pre = str(iid)[:-4]
-        hash_string = 'thumb_user_%s_%s' % (client_base, str(iid))
+        hash_string = 't_%s_%s' % (client_base, str(iid))
         key_string = ''
-        if len(pre) == 0:
-            pre = '0'
         if size is not None and len(size):
-            key_string ='%s/%s/%s/%s' % (pre, str(iid), user_id, 'x'.join([str(x) for x in size]))
+            key_string ='%s/%s' % (user_id, 'x'.join([str(x) for x in size]))
         else:
-            key_string ='%s/%s/%s' % (pre, str(iid), user_id)
+            key_string ='%s' % (user_id)
 
         return (hash_string, key_string)
 
@@ -373,11 +371,8 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         """
 
         iid = img.getId()
-        pre = str(iid)[:-4]
         hash_string = ''
         key_string = ''
-        if len(pre) == 0:
-            pre = '0'
         if r:
             r = r.REQUEST
             c = FN_REGEX.sub('-',r.get('c', ''))
@@ -389,14 +384,14 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
             q = r.get('q', '')
             region = r.get('region', '')
             tile = r.get('tile', '')
-            hash_string = 'img_%s_%s' % (client_base, str(iid))
-            key_string = '%s/%s/%%s-c%s-m%s-q%s-r%s-t%s' % (pre, str(iid), c, m, q, region, tile)
+            hash_string = 'i_%s_%s' % (client_base, str(iid))
+            key_string = '%%s-c%s-m%s-q%s-r%s-t%s' % (c, m, q, region, tile)
             if p:
                 return (hash_string, key_string % ('%s-%s' % (p, str(t))))
             else:
                 return (hash_string, key_string % ('%sx%s' % (str(z), str(t))))
         else:
-            return ('img_%s' % client_base, '%s/%s' % (pre, str(iid)))
+            return ('i_%s' % client_base, '%s' % (str(iid)))
 
     def setImage(self, r, client_base, img, z, t, obj, ctx=''):
         """
