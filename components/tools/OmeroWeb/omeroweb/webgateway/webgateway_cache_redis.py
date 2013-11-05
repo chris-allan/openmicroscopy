@@ -18,7 +18,6 @@ from django.conf import settings
 
 import omero
 import logging
-import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -184,9 +183,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
                 self._connected = True
             except:
                 self._connected = False
-                logger.warning('Unable to connect to Redis DB for caching')
-                for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+                logger.warning('Unable to connect to Redis DB for caching', exc_info=True)
 
     def clear (self):
         """
@@ -196,9 +193,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
             try:
                 self._redis.flushdb()
             except:
-                logger.warning("Problem trying to clear the Redis cache")
-                for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+                logger.warning("Problem trying to clear the Redis cache", exc_info=True)
 
     def invalidateObject (self, client_base, user_id, obj):
         """
@@ -244,11 +239,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
                 if timeout is not None:
                     self._redis.expire(h, timeout)
             except:
-                logger.warning("Problem trying to cache a key with Redis")
-                for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
-
-
+                logger.warning("Problem trying to cache a key with Redis", exc_info=True)
         return True
 
     def _cache_del(self, h, k):
@@ -259,9 +250,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
             if self._redis.hdel(h,k) < 1:
                 logger.error('failed to delete cached key %s:%s' % (h,k))
         except:
-            logger.warning("Problem deleting a key from Redis")
-            for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+            logger.warning("Problem deleting a key from Redis", exc_info=True)
 
     def _cache_get(self, h, k):
         """
@@ -271,9 +260,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         try:
             r = self._redis.hget(h,k)
         except:
-            logger.warning('Problem getting a key from Redis')
-            for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+            logger.warning('Problem getting a key from Redis', exc_info=True)
 
         if r is None:
             logger.debug('  fail: %s' % k)
@@ -355,9 +342,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
                 for k in keys:
                     self._cache_del(h,k)
             except:
-                logger.warning('Could not clear thumbnails from cache')
-                for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+                logger.warning('Could not clear thumbnails from cache', exc_info=True)
         return True
 
 
@@ -449,9 +434,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
                 for k in keys:
                     self._cache_del(h,k)
             except:
-                logger.warning('Could not clear image cache')
-                for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+                logger.warning('Could not clear image cache', exc_info=True)
             # do the thumb too
             self.clearThumb(r, client_base, user_id, img.getId())
             # and json data
@@ -525,9 +508,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
                 for k in keys:
                     self._cache_del(h,k)
             except:
-                logger.warning('Could not clear JSON cache')
-                for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+                logger.warning('Could not clear JSON cache', exc_info=True)
         return True
 
     def clearDatasetContents(self, r, client_base, ds):
@@ -546,9 +527,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
                 for k in keys:
                     self._cache_del(h,k)
             except:
-                logger.warning('Unable to clear json cache using contents as context')
-                for w in traceback.format_exc().splitlines():
-                    logger.debug(w)
+                logger.warning('Unable to clear json cache using contents as context', exc_info=True)
         return True
 
 if CACHE_ENABLED:
