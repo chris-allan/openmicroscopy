@@ -223,6 +223,8 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         @oaram key:             The cache key to look for.
         @return:                The timeout found, or 'None'.
         """
+        if self._default_timeouts is None:
+            return None
         if self._default_timeouts.has_key(key):
             return self._default_timeouts[key]
         return None
