@@ -290,6 +290,8 @@ CUSTOM_SETTINGS_MAPPINGS = {
     "omero.web.redis.port": ["REDIS_PORT", 6379, int],
     "omero.web.redis.db": ["REDIS_DB", 0, int],
     "omero.web.redis.timeouts": ["REDIS_DEFAULT_TIMEOUTS", '{}', json.loads],
+    "omero.web.redis.thumb_hashformat": ["REDIS_THUMB_HASHFORMAT", "t_{client_base}_{iid}", str],
+    "omero.web.redis.image_hashformat": ["REDIS_IMAGE_HASHFORMAT", "i_{client_base}_{iid}", str],
 }
 
 

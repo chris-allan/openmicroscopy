@@ -166,7 +166,10 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         self._redis_port = getattr(settings, 'REDIS_PORT', 6379)
         self._redis_db = getattr(settings, 'REDIS_DB', 0)
         self._default_timeouts = getattr(settings, 'REDIS_DEFAULT_TIMEOUTS', None)
-        #self._image_hashname = getattr(settings, 'REDIS_IMAGE_HASHNAME',)
+        self._thumb_hashformat = getattr(settings, 'REDIS_THUMB_HASHFORMAT', \
+            "t_{client_base}_{iid}")
+        self._image_hashformat = getattr(settings, 'REDIS_IMAGE_HASHFORMAT', \
+            "i_{client_base}_{iid}")
         self._connected = False
         self._connect_to_redis()
 
@@ -291,7 +294,8 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
 
         @return (hash_string, key_string)
         """
-        hash_string = 't_%s_%s' % (client_base, str(iid))
+        hash_string = self._thumb_hashformat.format(
+            client_base=client_base, iid=str(iid), user_id=user_id)
         key_string = ''
         if size is not None and len(size):
             key_string ='%s/%s' % (user_id, 'x'.join([str(x) for x in size]))
@@ -371,7 +375,7 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
         """
 
         iid = img.getId()
-        hash_string = ''
+        hash_string = self._image_hashformat.format(client_base=client_base, iid=str(iid))
         key_string = ''
         if r:
             r = r.REQUEST
@@ -384,14 +388,13 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
             q = r.get('q', '')
             region = r.get('region', '')
             tile = r.get('tile', '')
-            hash_string = 'i_%s_%s' % (client_base, str(iid))
             key_string = '%%s-c%s-m%s-q%s-r%s-t%s' % (c, m, q, region, tile)
             if p:
                 return (hash_string, key_string % ('%s-%s' % (p, str(t))))
             else:
                 return (hash_string, key_string % ('%sx%s' % (str(z), str(t))))
         else:
-            return ('i_%s' % client_base, '%s' % (str(iid)))
+            return (hash_string, '%s' % (str(iid)))
 
     def setImage(self, r, client_base, img, z, t, obj, ctx=''):
         """
