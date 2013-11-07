@@ -39,7 +39,7 @@ class TestWebGatewayCache(unittest.TestCase):
         self.cache.setThumb(None, 'omero', 1L, 1L, 'abcdef', (64, 64))
 
     def testClear(self):
-        self.cache.clear()
+        self.cache._redis.flushdb()
 
     def testThumbCache (self):
         uid = 123
@@ -54,7 +54,7 @@ class TestWebGatewayCache(unittest.TestCase):
             # Make sure clear() nukes this
             self.cache.setThumb(self.request, 'test', uid, 1, 'thumbdata')
             assert self.cache.getThumb(self.request, 'test', uid, 1) == 'thumbdata', 'Thumb not properly cached'
-        self.cache.clear()
+        self.cache._redis.flushdb()
 
     def testImageCache (self):
         uid = 123
@@ -95,7 +95,7 @@ class TestWebGatewayCache(unittest.TestCase):
             assert self.cache.getSplitChannelImage(self.request, 'test', img, 2, 3) is None
             assert self.cache.getImage(preq, 'test', img, 2, 3) is None
             assert self.cache.getThumb(self.request, 'test', uid, 1) is None
-            # Make sure clear() nukes this
+            # Make sure _redis.flushdb() nukes this
             assert self.cache.getImage(self.request, 'test', img, 2, 3) is None
             self.cache.setImage(self.request, 'test', img, 2, 3, 'imagedata')
             assert self.cache.getImage(self.request, 'test', img, 2, 3) == 'imagedata'
@@ -115,9 +115,9 @@ class TestWebGatewayCache(unittest.TestCase):
             assert self.cache.getDatasetContents(self.request, 'test', ds) == 'datasetdata'
             self.cache.invalidateObject('test', uid, ds)
             assert self.cache.getDatasetContents(self.request, 'test', ds) is None
-            # Make sure clear() nukes this
+            # Make sure _redis.flushdb() nukes this
             assert self.cache.getDatasetContents(self.request, 'test', ds) is None
             self.cache.setDatasetContents(self.request, 'test', ds, 'datasetdata')
             assert self.cache.getDatasetContents(self.request, 'test', ds) == 'datasetdata'
 
-        self.cache.clear()
+        self.cache._redis.flushdb()

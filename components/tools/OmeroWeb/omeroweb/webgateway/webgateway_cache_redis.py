@@ -185,16 +185,6 @@ class WebGatewayCacheRedis(WebGatewayCacheNull):
                 self._connected = False
                 logger.warning('Unable to connect to Redis DB for caching', exc_info=True)
 
-    def clear (self):
-        """
-        Attempts to clear all the values stored in redis as hash/key/cahce.
-        """
-        if self._connected:
-            try:
-                self._redis.flushdb()
-            except:
-                logger.warning("Problem trying to clear the Redis cache", exc_info=True)
-
     def invalidateObject (self, client_base, user_id, obj):
         """
         Invalidates all caches for this particular object
