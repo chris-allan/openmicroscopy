@@ -88,7 +88,11 @@ class ITest(object):
         p = path(".").abspath()
         while str(p.basename()) not in ("OmeroPy", ""): # "" means top of directory
             searched.append(p)
-            p = p / ".." # Walk up, in case test runner entered a subdirectory
+            p = p / ".."  # Walk up, in case test runner entered a subdirectory
+            try:
+                p, = p.dirs("OmeroPy")
+            except ValueError:
+                pass
             p = p.abspath()
             count -= 1
             if not count:
