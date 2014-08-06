@@ -858,7 +858,7 @@ class BlitzObjectWrapper (object):
                 else use a new connection for the object owner (?same owner as ann?)
                 do linking
             else:
-                try to switch the current group of this object to the group of the annotation - do linking
+                do linking
         else - just do linking
         
         """
