@@ -885,12 +885,6 @@ class BlitzObjectWrapper (object):
                 ann = clone._linkAnnotation(ann)
                 if newConn != self._conn:
                     newConn.seppuku()
-            elif d.getGroup():
-                # Try to match group
-                # TODO: Should switch session of this object to use group from annotation (ad) not this object (d) ?
-                self._conn.setGroupForSession(d.getGroup().getId())
-                ann = self._linkAnnotation(ann)
-                self._conn.revertGroupForSession()
             else:
                 ann = self._linkAnnotation(ann)
         else:
