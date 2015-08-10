@@ -26,6 +26,9 @@
   <credentials host="artifacts.openmicroscopy.org" realm="Artifactory Realm"
         username="${artifactory.username}" passwd="${artifactory.password}"/>
 
+  <credentials host="artifacts.glencoesoftware.com" realm="Artifactory Realm"
+        username="${gs.artifactory.username}" passwd="${gs.artifactory.password}"/>
+
   <caches default="local" defaultCacheDir="${ivy.settings.dir}/../lib/cache">
       <!-- local is intended for all products built from this repository,
            while maven is for any stable, unchanging jar that is being
@@ -71,6 +74,10 @@
           usepoms="true" useMavenMetadata="true"
           m2compatible="true"
            root="https://artifacts.openmicroscopy.org/artifactory/simple/${simple.repository}/"/>
+      <ibiblio name="gs-artifactory" cache="maven"
+          usepoms="true" useMavenMetadata="true"
+          m2compatible="true"
+          root="https://artifacts.glencoesoftware.com/artifactory/repo/"/>
       <ibiblio name="ome-artifactory" cache="maven"
           usepoms="true" useMavenMetadata="true"
           m2compatible="true"
@@ -107,6 +114,12 @@
     <chain name="unidata-resolver" returnFirst="true">
         <resolver ref="user-maven"/>
         <resolver ref="unidata.releases"/>
+    </chain>
+
+    <!-- Resolver for Glencoe Software dependencies-->
+    <chain name="gs-resolver" returnFirst="true">
+        <resolver ref="user-maven"/>
+        <resolver ref="gs-artifactory"/>
     </chain>
 
     <!-- Spring resolver which has as its first resolver the location
