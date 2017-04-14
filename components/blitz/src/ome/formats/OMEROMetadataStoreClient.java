@@ -697,6 +697,11 @@ public class OMEROMetadataStoreClient
     {
         secure(server, port);
         serviceFactory = c.joinSession(sessionKey);
+        // We may have been given a session key which has only been used
+        // under detach on destroy semantics.  Respect this.  In the worst
+        // case scenario the session will be valid for a slightly longer
+        // period of time.
+        serviceFactory.detachOnDestroy();
     if (!isSecure)
     {
             unsecure();
