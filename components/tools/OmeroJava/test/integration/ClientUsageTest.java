@@ -174,7 +174,7 @@ public class ClientUsageTest extends AbstractServerTest {
         client c = new client();
         try {
             c.joinSession(session);
-            Assert.fail("The session should have been deleted");
+            fail("The session should have been deleted");
         } catch (UserException e) {
             /* expected because the client is disconnected */
         }
