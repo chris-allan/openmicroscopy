@@ -14,6 +14,7 @@ import ome.api.StatefulServiceInterface;
 import ome.conditions.ValidationException;
 import ome.model.core.Pixels;
 import ome.model.display.QuantumDef;
+import ome.model.display.RenderingDef;
 import ome.model.enums.Family;
 import ome.model.enums.RenderingModel;
 import omeis.providers.re.codomain.CodomainMapContext;
@@ -483,6 +484,15 @@ public interface RenderingEngine extends StatefulServiceInterface {
      * @see #updateCodomainMap(CodomainMapContext)
      */
     public void removeCodomainMap(CodomainMapContext mapCtx);
+
+    /**
+     * Updates the current rendering settings based on a provided rendering
+     * definition and associated sub-objects.
+     * @param settings Rendering definition to copy from. Each sub-object
+     * will be processed as though the specific method was called with
+     * related attributes provided as arguments.
+     */
+    public void updateSettings(RenderingDef settings);
 
     /** Saves the current rendering settings in the database. */
     public void saveCurrentSettings();
