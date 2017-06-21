@@ -64,6 +64,7 @@ module omero {
                 void addCodomainMap(omero::romio::CodomainMapContext mapCtx) throws ServerError;
                 void updateCodomainMap(omero::romio::CodomainMapContext mapCtx) throws ServerError;
                 void removeCodomainMap(omero::romio::CodomainMapContext mapCtx) throws ServerError;
+                idempotent void updateSettings(omero::model::RenderingDef settings) throws ServerError;
                 void saveCurrentSettings() throws ServerError;
                 long saveAsNewSettings() throws ServerError;
                 long resetDefaultSettings(bool save) throws ServerError;
