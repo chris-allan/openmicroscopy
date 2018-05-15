@@ -199,6 +199,7 @@ class WebclientLoginView(LoginView):
         # webclient has various state that needs cleaning up...
         # if 'active_group' remains in session from previous
         # login, check it's valid for this user
+        # NB: we do this for public users in @login_required.get_connection()
         if request.session.get('active_group'):
             if (request.session.get('active_group') not in
                     conn.getEventContext().memberOfGroups):
@@ -3374,7 +3375,7 @@ def activities(request, conn=None, **kwargs):
                                         obj_data['name'] = name
                                 rMap[key] = obj_data
                             else:
-                                rMap[key] = v
+                                rMap[key] = unwrap(v)
                     update_callback(request, cbString, results=rMap)
                 else:
                     in_progress += 1
@@ -3595,7 +3596,7 @@ def script_ui(request, scriptId, conn=None, **kwargs):
         elif pt.__class__.__name__ == 'list':
             i["list"] = True
             if "default" in i:
-                i["default"] = i["default"][0]
+                i["default"] = ",".join([str(d) for d in i["default"]])
         elif isinstance(pt, bool):
             i["boolean"] = True
         elif isinstance(pt, int) or isinstance(pt, long):

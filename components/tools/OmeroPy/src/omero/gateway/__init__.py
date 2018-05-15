@@ -1905,7 +1905,7 @@ class _BlitzGateway (object):
                 self.c = None
 
         self._proxies = NoProxies()
-        logger.info("closed connecion (uuid=%s)" % str(self._sessionUuid))
+        logger.info("closed connection (uuid=%s)" % str(self._sessionUuid))
 
     def close(self, hard=True):  # pragma: no cover
         """
@@ -1929,7 +1929,7 @@ class _BlitzGateway (object):
                 self._session = None
 
         self._proxies = NoProxies()
-        logger.info("closed connecion (uuid=%s)" % str(self._sessionUuid))
+        logger.info("closed connection (uuid=%s)" % str(self._sessionUuid))
 
     def _createProxies(self):
         """
@@ -2701,6 +2701,28 @@ class _BlitzGateway (object):
         :return:    omero.gateway.ProxyObjectWrapper
         """
         return ProxyObjectWrapper(self, 'createExporter')
+
+    ####################
+    # Read-only status #
+
+    def canCreate(self):
+        """
+        Get the read-only status of the server.
+        Warning: This is EXPERIMENTAL API that is subject to change.
+
+        :return:  True if the server is wholly in read-write mode,
+                  False if the server is wholly in read-only mode,
+                  otherwise None
+        """
+        key_regex = '^omero\.cluster\.read_only\.runtime\.'
+        properties = self.getConfigService().getConfigValues(key_regex)
+        values = frozenset(properties.values())
+        if not values:
+            return True
+        elif len(values) == 1:
+            return 'false' in values
+        else:
+            return None
 
     #############################
     # Top level object fetchers #
@@ -8748,7 +8770,6 @@ class _ImageWrapper (BlitzObjectWrapper, OmeroRestrictionWrapper):
 
         return self.getPixelLine(z, t, x, 'v', channels, range)
 
-    @assert_re()
     def getRenderingModels(self):
         """
         Gets a list of available rendering models.
@@ -8758,9 +8779,8 @@ class _ImageWrapper (BlitzObjectWrapper, OmeroRestrictionWrapper):
         """
 
         if not len(self._rm):
-            for m in [BlitzObjectWrapper(self._conn, m)
-                      for m in self._re.getAvailableModels()]:
-                self._rm[m.value.lower()] = m
+            for m in self._conn.getEnumerationEntries('RenderingModel'):
+                self._rm[m.value] = m
         return self._rm.values()
 
     @assert_re()
@@ -8774,6 +8794,7 @@ class _ImageWrapper (BlitzObjectWrapper, OmeroRestrictionWrapper):
 
         return BlitzObjectWrapper(self._conn, self._re.getModel())
 
+    @assert_re()
     def setGreyscaleRenderingModel(self):
         """
         Sets the Greyscale rendering model on this image's current renderer
@@ -8782,6 +8803,7 @@ class _ImageWrapper (BlitzObjectWrapper, OmeroRestrictionWrapper):
         rm = self.getRenderingModels()
         self._re.setModel(self._rm.get('greyscale', rm[0])._obj)
 
+    @assert_re()
     def setColorRenderingModel(self):
         """
         Sets the HSB rendering model on this image's current renderer
@@ -8824,7 +8846,6 @@ class _ImageWrapper (BlitzObjectWrapper, OmeroRestrictionWrapper):
         if inverted:
             self._re.addCodomainMapToChannel(r, channelIndex)
 
-    @assert_re()
     def getFamilies(self):
         """
         Gets a dict of available families.
@@ -8833,9 +8854,8 @@ class _ImageWrapper (BlitzObjectWrapper, OmeroRestrictionWrapper):
         :rtype:     Dict
         """
         if not len(self._qf):
-            for f in [BlitzObjectWrapper(self._conn, f)
-                      for f in self._re.getAvailableFamilies()]:
-                self._qf[f.value.lower()] = f
+            for f in self._conn.getEnumerationEntries('Family'):
+                self._qf[f.value] = f
         return self._qf
 
     @assert_re()
@@ -8848,25 +8868,8 @@ class _ImageWrapper (BlitzObjectWrapper, OmeroRestrictionWrapper):
         :param family:          The family (string)
         :param coefficient:     The coefficient (float)
         """
-        if channelIndex < 0 or channelIndex >= self.getSizeC():
-            return
-
-        families = self.getFamilies()
-        f = families.get("linear")
-        try:
-            f = families.get(family.lower(), f)
-        except:
-            pass
-
-        c = 1.0
-        try:
-            c = float(coefficient)
-            if c < 0 or c > 1.0:
-                c = 1.0
-        except:
-            pass
-
-        self._re.setQuantizationMap(channelIndex, f._obj, c, False)
+        f = self.getFamilies().get(family)
+        self._re.setQuantizationMap(channelIndex, f._obj, coefficient, False)
 
     @assert_re()
     def setQuantizationMaps(self, maps):
