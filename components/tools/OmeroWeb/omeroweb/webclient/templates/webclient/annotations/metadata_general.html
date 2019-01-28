@@ -352,6 +352,7 @@
                     var projectQuery = "{% url 'webgateway_object_table_query' 'Project.datasetLinks.child.imageLinks.child' manager.image.id %}";
                     var datasetQuery = "{% url 'webgateway_object_table_query' 'Dataset.imageLinks.child' manager.image.id %}";
                     var query = "Image-{{ manager.image.id }}";
+                    var query2 = "image-{{ manager.image.id }}";
                     {% endif %}
 
                     var showBulkAnnTooltip = function(data) {
@@ -389,9 +390,13 @@
                         if (expanded && $("#bulk_annotations_table").is(":empty")) {
                             loadBulkAnnotations(screenQuery, query, showBulkAnnTooltip);
                             loadBulkAnnotations(plateQuery, query, showBulkAnnTooltip);
+                            loadBulkAnnotations(screenQuery, query2, showBulkAnnTooltip);
+                            loadBulkAnnotations(plateQuery, query2, showBulkAnnTooltip);
                             {% if manager.image %}
-                            loadBulkAnnotations(projectQuery, query, showBulkAnnTooltip);
-                            loadBulkAnnotations(datasetQuery, query, showBulkAnnTooltip);
+                                loadBulkAnnotations(projectQuery, query, showBulkAnnTooltip);
+                                loadBulkAnnotations(datasetQuery, query, showBulkAnnTooltip);
+                                loadBulkAnnotations(projectQuery, query2, showBulkAnnTooltip);
+                                loadBulkAnnotations(datasetQuery, query2, showBulkAnnTooltip);
                             {% endif %}
                         }
                     });
@@ -404,9 +409,13 @@
                         if ($("#bulk_annotations_table").is(":empty")) {
                             loadBulkAnnotations(screenQuery, query, showBulkAnnTooltip);
                             loadBulkAnnotations(plateQuery, query, showBulkAnnTooltip);
+                            loadBulkAnnotations(screenQuery, query2, showBulkAnnTooltip);
+                            loadBulkAnnotations(plateQuery, query2, showBulkAnnTooltip);
                             {% if manager.image %}
-                            loadBulkAnnotations(projectQuery, query, showBulkAnnTooltip);
-                            loadBulkAnnotations(datasetQuery, query, showBulkAnnTooltip);
+                                loadBulkAnnotations(projectQuery, query, showBulkAnnTooltip);
+                                loadBulkAnnotations(datasetQuery, query, showBulkAnnTooltip);
+                                loadBulkAnnotations(projectQuery, query2, showBulkAnnTooltip);
+                                loadBulkAnnotations(datasetQuery, query2, showBulkAnnTooltip);
                             {% endif %}
                         }
                     }

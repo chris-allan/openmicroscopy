@@ -55,7 +55,9 @@ command-line arguments. Special keys include:
 
  * columns      A list of columns for parsing the value of path
  * continue     Like the "-c" changes error handling
- * dry_run      Prints out additional arguments rather than running them
+ * dry_run      If true, print out additional arguments rather than run them.
+                If another string other than false, use as a template for
+                storing the import commands. (e.g. /tmp/%s.sh)
  * include      Relative path (from the bulk file) of a parent bulk file
  * path         A file which will be parsed line by line based on its file
                 ending. Lines containing zero or more keys along with a
@@ -238,14 +240,18 @@ class CommandArguments(object):
         """Set the arguments to skip steps during import"""
         if not args.skip:
             return
+        self.set_skip_values(args.skip)
 
-        if ('all' in args.skip or 'checksum' in args.skip):
+    def set_skip_values(self, skip):
+        """Set the arguments to skip steps during import"""
+
+        if ('all' in skip or 'checksum' in skip):
             self.__java_initial.append("--checksum-algorithm=File-Size-64")
-        if ('all' in args.skip or 'thumbnails' in args.skip):
+        if ('all' in skip or 'thumbnails' in skip):
             self.__java_initial.append("--no-thumbnails")
-        if ('all' in args.skip or 'minmax' in args.skip):
+        if ('all' in skip or 'minmax' in skip):
             self.__java_initial.append("--no-stats-info")
-        if ('all' in args.skip or 'upgrade' in args.skip):
+        if ('all' in skip or 'upgrade' in skip):
             self.__java_initial.append("--no-upgrade-check")
 
     def open_files(self):
@@ -397,7 +403,7 @@ class ImportControl(BaseControl):
             "-c", action="store_true",
             help="Continue importing after errors (**)")
         add_java_argument(
-            "-l",
+            "-l", "--readers",
             help="Use the list of readers rather than the default (**)",
             metavar="READER_FILE")
         add_java_argument(
@@ -447,6 +453,18 @@ class ImportControl(BaseControl):
         add_advjava_argument(
             "--checksum-algorithm", nargs="?", metavar="TYPE",
             help="Alternative hashing mechanisms balancing speed & accuracy")
+        add_advjava_argument(
+            "--no-stats-info", action="store_true", help=SUPPRESS)
+        add_advjava_argument(
+            "--no-thumbnails", action="store_true", help=SUPPRESS)
+        add_advjava_argument(
+            "--no-upgrade-check", action="store_true", help=SUPPRESS)
+        add_advjava_argument(
+            "--parallel-upload", metavar="COUNT",
+            help="Number of file upload threads to run at the same time")
+        add_advjava_argument(
+            "--parallel-fileset", metavar="COUNT",
+            help="Number of fileset candidates to import at the same time")
 
         # Unsure on these.
         add_python_argument(
@@ -544,13 +562,20 @@ class ImportControl(BaseControl):
                 bulk.update(data)
                 os.chdir(parent)
 
+            incr = 0
             failed = 0
             total = 0
             for cont in self.parse_bulk(bulk, command_args):
+                incr += 1
                 if command_args.dry_run:
                     rv = ['"%s"' % x for x in command_args.added_args()]
                     rv = " ".join(rv)
-                    self.ctx.out(rv)
+                    if command_args.dry_run.lower() == "true":
+                        self.ctx.out(rv)
+                    else:
+                        with open(command_args.dry_run % incr, "w") as o:
+                            # FIXME: this assumes 'bin/omero'
+                            print >>o, sys.argv[0], "import", rv
                 else:
                     self.do_import(command_args, xargs)
                 if self.ctx.rv:
@@ -575,14 +600,19 @@ class ImportControl(BaseControl):
 
         command_args.dry_run = False
         if "dry_run" in bulk:
-            dry_run = bulk.pop("dry_run")
-            command_args.dry_run = dry_run
+            dry_run = str(bulk.pop("dry_run"))
+            # Accept any non-false string since it might be a pattern
+            if dry_run.lower() != "false":
+                command_args.dry_run = dry_run
 
         if "continue" in bulk:
             cont = True
             c = bulk.pop("continue")
             if bool(c):
                 command_args.add("c")
+
+        if "skip" in bulk:
+            command_args.set_skip_values(bulk.pop("skip"))
 
         if "path" not in bulk:
             # Required until @file format is implemented

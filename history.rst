@@ -1,9 +1,86 @@
 .. Content for this page should be opened as a PR against
-.. https://github.com/openmicroscopy/openmicroscopy/blob/develop/history.txt
+.. https://github.com/openmicroscopy/openmicroscopy/blob/develop/history.rst
 .. initially and transferred to this page via the autogen job
 
 OMERO version history
 =====================
+
+5.4.10 (January 2019)
+---------------------
+
+This release addresses a login issue for Java clients such as Insight
+and ``bin/omero import``. New releases of Java include a change to the
+``java.security`` file that disables anonymous cipher suites. This
+change causes ``SSLHandshakeException`` when the client attempts to
+authenticate to OMERO.blitz. The OMERO 5.4.10 release has clients check
+the security property ``jdk.tls.disabledAlgorithms`` for the value
+"anon" and remove it if present thus allowing authentication to proceed.
+
+5.4.9 (October 2018)
+--------------------
+
+This release addresses a critical import issue where files can be silently
+skipped.
+
+Import improvements include:
+
+- ``ImportCandidates`` returns filesets even when files are shared between
+  several filesets independently of the scanning order
+- insight: bug fixes for the lightweight importer UI
+
+Other improvements include:
+
+- BlitzGateway: new API to read ``OriginalFile`` as file-like objects
+- server: add code to dispose of `Graphics` objects in the server
+- Javadoc: add links to developer documentation for graph operations
+
+5.4.8 (September 2018)
+----------------------
+
+This release focuses on a number of import performance
+improvements while including several other fixes as
+well as an upgrade of Bio-Formats.
+
+Import improvements include:
+
+- cli: new experimental `--parallel-upload` and
+  `--parallel-fileset` flags to the `import` command
+- cli: new `fs importtime` cli command
+- cli: add support for `--skip`, `--parallel-upload`, 
+  `--parallel-fileset` and `--readers` options in bulk
+  import configuration files
+- insight: new options for skipping various import steps
+  to speed up the process (match cli's `--skip` option)
+- insight: supporting imports with thousands of files
+  by providing a lightweight UI
+- insight: new loading placeholder when browsing data to
+  show when an image is busy being processed and not
+  ready to generate a thumbnail
+- insight: added error placeholder when browsing data to
+  indicate a failed import
+- server: preventing recalculation of checksums for upload
+- server: providing better performance logging,
+  accessible to users via `fs logfile`
+- as well as preservation of Bio-Formats' knowledge of
+  channel colors where provided.
+
+Other client changes include:
+
+- web: better handling of large numbers of channels
+- web: fixed socket leakage on unclosed web sessions
+- web: fixed issue with bulk annotation table handling
+- cli: deprecating `admin sessionlist` and `config list`
+
+Sysadmin improvements include:
+
+- new `%thread%` option for `omero.fs.repo.path`
+  as well as fix a few bugs for dealing with
+  parallel imports
+- new `omero.threads.background_threads` property
+  to limit the number of simultaneous imports
+
+This release also upgrades the version of Bio-Formats which OMERO
+uses to 5.9.2.
 
 5.4.7 (July 2018)
 -----------------
@@ -331,7 +408,7 @@ Developer updates include:
 Further changes to the Python BlitzGateway are described in
 :doc:`/developers/whatsnew`.
 
-This release also upgrades the version of Bio-Formats which OMERO uses to `5.7.1 <http://www.openmicroscopy.org/2017/09/20/bio-formats-5-7-1.html>`_.
+This release also upgrades the version of Bio-Formats which OMERO uses to `5.7.1 <https://www.openmicroscopy.org/2017/09/20/bio-formats-5-7-1.html>`_.
 
 5.3.5 (October 2017)
 --------------------
@@ -501,7 +578,7 @@ Developer updates include:
 -  disabled jquery cache
 
 Further details on breaking changes are available on
-`What's new for OMERO 5.3 for developers <http://docs.openmicroscopy.org/omero/5.3.0/developers/whatsnew.html>`_. Work
+`What's new for OMERO 5.3 for developers <https://docs.openmicroscopy.org/omero/5.3.0/developers/whatsnew.html>`_. Work
 on the Web API is ongoing and will include moving away from the use of JSONP
 and introducing Django CORS.
 
@@ -609,7 +686,7 @@ System administrator updates include:
 -  a fix to allow OMERO.web to be run in a Docker container
 -  improved OMERO.web configuration
 -  warnings added regarding the
-   `end of Windows support in the 5.3.0 release <http://blog.openmicroscopy.org/tech-issues/future-plans/deployment/2016/03/22/windows-support/>`_
+   `end of Windows support in the 5.3.0 release <https://blog.openmicroscopy.org/tech-issues/future-plans/deployment/2016/03/22/windows-support/>`_
    (note that we will be preparing a guide for migrating from Windows for
    existing servers and adding it to the documentation as soon as we can)
 
@@ -756,7 +833,7 @@ this release and is scheduled to be removed in 5.2.0. Sysadmins should move to
 using WSGI instead. We are also intending to stop distributing Java Webstart
 for launching OMERO.insight from your browser, as security concerns mean
 browsers are increasingly moving away from supporting this type of
-application. You can read further information regarding this decision on our `Web Start blog post <http://blog.openmicroscopy.org/tech-issues/future-plans/2015/09/23/java-web-start/>`_.
+application. You can read further information regarding this decision on our `Web Start blog post <https://blog.openmicroscopy.org/tech-issues/future-plans/2015/09/23/java-web-start/>`_.
 
 5.1.3 (July 2015)
 -----------------
@@ -793,7 +870,7 @@ Developer updates include:
 
 This release also includes the fix for the Java security issue, as discussed
 in the
-`recent blog post <http://blog.openmicroscopy.org/tech-issues/2015/07/21/java-issue/>`_. Testing
+`recent blog post <https://blog.openmicroscopy.org/tech-issues/2015/07/21/java-issue/>`_. Testing
 suggests this fix should not have any performance implications. You should
 upgrade your Java version to take advantage of the security fix.
 
@@ -1568,4 +1645,4 @@ Milestone M1 (April 2006)
 
 Contains minimal functionality needed to run Shoola Java client without Perl
 server to demonstrate acceleration of metadata access. Application deployed on
-JBoss (http://www.jboss.org). No ACLs or permissions.
+JBoss (https://www.jboss.org). No ACLs or permissions.

@@ -474,73 +474,89 @@ public class ThumbnailBean extends AbstractLevel2Service
     /**
      * Compresses a buffered image thumbnail to disk.
      *
-     * @param thumb
-     *            the thumbnail metadata.
-     * @param image
-     *            the thumbnail's buffered image.
-     * @throws IOException
-     *             if there is a problem writing to disk.
+     * @param metadata  the thumbnail metadata.
+     * @param image the thumbnail's buffered image.
+     * @param inProgress if set to true, writes inProgressImageResource to disk
+     * @throws ResourceError if there is a problem writing to disk.
      */
-    private void compressThumbnailToDisk(Thumbnail thumb, BufferedImage image)
-    throws IOException {
-
+    private void compressThumbnailToDisk(Thumbnail metadata, BufferedImage image, boolean inProgress)
+            throws IOException, ResourceError {
         if (diskSpaceChecking) {
             iRepositoryInfo.sanityCheckRepository();
         }
 
-        FileOutputStream stream = ioService.getThumbnailOutputStream(thumb);
-        try {
+        try (FileOutputStream stream = ioService.getThumbnailOutputStream(metadata)) {
             if (inProgress) {
-                compressInProgressImageToStream(thumb, stream);
+                compressInProgressImageToStream(metadata.getSizeX(), metadata.getSizeY(),
+                        stream, inProgressImageResource);
             } else {
                 compressionService.compressToStream(image, stream);
             }
-        } finally {
-            stream.close();
+        }
+    }
+
+    /**
+     * Compresses a buffered image thumbnail to a byte array.
+     *
+     * @param image the thumbnail's buffered image.
+     * @param inProgress if set to true, returns inProgressImageResource
+     * @return byte data of thumbnail
+     * @throws ResourceError if there is a problem converting  to disk.
+     */
+    private byte[] convertThumbnailToBytes(BufferedImage image, boolean inProgress)
+            throws IOException {
+        try (ByteArrayOutputStream byteStream = new ByteArrayOutputStream()) {
+            if (inProgress) {
+                compressInProgressImageToStream(image.getWidth(), image.getHeight(),
+                        byteStream, inProgressImageResource);
+            } else {
+                compressionService.compressToStream(image, byteStream);
+            }
+            return byteStream.toByteArray();
         }
     }
 
     /**
      * Compresses the <i>in progress</i> image to a stream.
-     * @param thumb The thumbnail metadata.
+     *
+     * @param width image width
+     * @param height image height
      * @param outputStream Stream to compress the data to.
+     * @param inProgressImageResource The image file (located in resources) to write to disk
+     * @throws ResourceError
      */
-    private void compressInProgressImageToStream(
-            Thumbnail thumb, OutputStream outputStream) {
-        int x = thumb.getSizeX();
-        int y = thumb.getSizeY();
-        StopWatch s1 = new Slf4JStopWatch("omero.transcodeSVG");
-        try
-        {
-            SVGRasterizer rasterizer = new SVGRasterizer(
-                    inProgressImageResource.getInputStream());
-            // Batik will automatically maintain the aspect ratio of the
-            // resulting image if we only specify the width or height.
-            if (x > y)
-            {
-                rasterizer.setImageWidth(x);
-            }
-            else
-            {
-                rasterizer.setImageHeight(y);
-            }
-            rasterizer.setQuality(compressionService.getCompressionLevel());
-            rasterizer.createJPEG(outputStream);
-            s1.stop();
-        }
-        catch (IOException e1)
-        {
-            String s = "Error loading in-progress image from Spring resource.";
-            log.error(s, e1);
-            throw new ResourceError(s);
-        }
-        catch (TranscoderException e2)
-        {
-            String s = "Error transcoding in progress SVG.";
-            log.error(s, e2);
-            throw new ResourceError(s);
-        }
-    }
+   private void compressInProgressImageToStream(int width, int height, OutputStream outputStream,
+                                                Resource inProgressImageResource) throws ResourceError {
+       StopWatch s1 = new Slf4JStopWatch("omero.transcodeSVG");
+       try
+       {
+           SVGRasterizer rasterizer = new SVGRasterizer(
+                   inProgressImageResource.getInputStream());
+           // Batik will automatically maintain the aspect ratio of the
+           // resulting image if we only specify the width or height.
+           if (width > height) {
+               rasterizer.setImageWidth(width);
+           }
+           else  {
+               rasterizer.setImageHeight(height);
+           }
+           rasterizer.setQuality(compressionService.getCompressionLevel());
+           rasterizer.createJPEG(outputStream);
+           s1.stop();
+       }
+       catch (IOException e1)
+       {
+           String s = "Error loading in-progress image from Spring resource.";
+           log.error(s, e1);
+           throw new ResourceError(s);
+       }
+       catch (TranscoderException e2)
+       {
+           String s = "Error transcoding in progress SVG.";
+           log.error(s, e2);
+           throw new ResourceError(s);
+       }
+   }
 
     /**
      * Checks that sizeX and sizeY are not out of range for the active pixels
@@ -572,8 +588,6 @@ public class ThumbnailBean extends AbstractLevel2Service
     /**
      * Creates a scaled buffered image from the active pixels set.
      *
-     * @param def
-     *            the rendering settings to use for buffered image creation.
      * @param theZ the optical section (offset across the Z-axis) requested.
      * <pre>null</pre> signifies the rendering engine default.
      * @param theT the timepoint (offset across the T-axis) requested.
@@ -819,67 +833,86 @@ public class ThumbnailBean extends AbstractLevel2Service
         }
     }
 
-    /** Actually does the work specified by {@link #createThumbnail(Integer, Integer)}. */
-    private Thumbnail _createThumbnail() {
+    /**
+     * Calls {@code _createThumbnail(Thumbnail thumbMetaData)} with the local
+     * variable {@code thumbnailMetadata} as the input parameter.
+     *
+     * @return thumbnail object
+     */
+    private Thumbnail _createThumbnail() throws ResourceError {
         StopWatch s1 = new Slf4JStopWatch("omero._createThumbnail");
-        if (thumbnailMetadata == null) {
-            throw new ValidationException("Missing thumbnail metadata.");
-        } else if (ctx.dirtyMetadata(pixels.getId())) {
-            // Increment the version of the thumbnail so that its
-            // update event has a timestamp equal to or after that of
-            // the rendering settings. FIXME: This should be
-            // implemented using IUpdate.touch() or similar once that
-            // functionality exists.
-            //Check first if the thumbnail is the one of the settings owner
-            Long ownerId = thumbnailMetadata.getDetails().getOwner().getId();
-            Long rndOwnerId = settings.getDetails().getOwner().getId();
-            final Long rndGroupId = settings.getDetails().getGroup().getId();
-            final Map<String, String> groupContext = new HashMap<>();
-            groupContext.put("omero.group", Long.toString(rndGroupId));
-            try {
-                try {
-                    applicationContext.publishMessage(new ContextMessage.Push(this, groupContext));
-                } catch (Throwable t) {
-                    final String errorMessage = "could not publish context change push";
-                    log.error(errorMessage, t);
-                    throw new InternalException(errorMessage + ": " + t);
-                }
-                if (rndOwnerId.equals(ownerId)) {
-                    final Pixels unloadedPixels = new Pixels(pixels.getId(), false);
-                    thumbnailMetadata.setPixels(unloadedPixels);
-                    _setMetadataVersion(thumbnailMetadata, inProgress);
-                    dirtyMetadata = true;
-                } else {
-                    //new one for owner of the settings.
-                    final Dimension d = new Dimension(thumbnailMetadata.getSizeX(),
-                                                      thumbnailMetadata.getSizeY());
-                    thumbnailMetadata = ctx.createThumbnailMetadata(pixels, d);
-                    _setMetadataVersion(thumbnailMetadata, inProgress);
-                    thumbnailMetadata = iUpdate.saveAndReturnObject(thumbnailMetadata);
-                    dirtyMetadata = false;
-                }
-            } finally {
-                try {
-                    applicationContext.publishMessage(new ContextMessage.Pop(this, groupContext));
-                } catch (Throwable t) {
-                    final String errorMessage = "could not publish context change pop";
-                    log.error(errorMessage, t);
-                    throw new InternalException(errorMessage + ": " + t);
-                }
-            }
-        }
-        // dirtyMetadata is left false here because we may be creating a
-        // thumbnail for the first time and the Thumbnail object has just been
-        // created upstream of us.
-
+        thumbnailMetadata = _createThumbnail(thumbnailMetadata);
         BufferedImage image = createScaledImage(null, null);
         try {
-            compressThumbnailToDisk(thumbnailMetadata, image);
-            s1.stop();
+            compressThumbnailToDisk(thumbnailMetadata, image, inProgress);
             return thumbnailMetadata;
         } catch (IOException e) {
             log.error("Thumbnail could not be compressed.", e);
             throw new ResourceError(e.getMessage());
+        } finally {
+            s1.stop();
+        }
+    }
+
+    /**
+     * Actually does the work specified by {@link #createThumbnail(Integer, Integer)}.
+     *
+     * @param thumbMetaData Thumbnail meta data object
+     * @return
+     */
+    private Thumbnail _createThumbnail(Thumbnail thumbMetaData) {
+        StopWatch s1 = new Slf4JStopWatch("omero._createThumbnail(thumbMetaData)");
+        try {
+            if (thumbMetaData == null) {
+                throw new ValidationException("Missing thumbnail metadata.");
+            } else if (ctx.dirtyMetadata(pixels.getId()) &&
+                    thumbMetaData.getDetails().getOwner() != null) {
+                // Increment the version of the thumbnail so that its
+                // update event has a timestamp equal to or after that of
+                // the rendering settings. FIXME: This should be
+                // implemented using IUpdate.touch() or similar once that
+                // functionality exists.
+                //Check first if the thumbnail is the one of the settings owner
+                Long ownerId = thumbMetaData.getDetails().getOwner().getId();
+                Long rndOwnerId = settings.getDetails().getOwner().getId();
+                final Long rndGroupId = settings.getDetails().getGroup().getId();
+                final Map<String, String> groupContext = new HashMap<>();
+                groupContext.put("omero.group", Long.toString(rndGroupId));
+                try {
+                    try {
+                        applicationContext.publishMessage(new ContextMessage.Push(this, groupContext));
+                    } catch (Throwable t) {
+                        final String errorMessage = "could not publish context change push";
+                        log.error(errorMessage, t);
+                        throw new InternalException(errorMessage + ": " + t);
+                    }
+                    if (rndOwnerId.equals(ownerId)) {
+                        final Pixels unloadedPixels = new Pixels(pixels.getId(), false);
+                        thumbMetaData.setPixels(unloadedPixels);
+                        _setMetadataVersion(thumbMetaData, inProgress);
+                        dirtyMetadata = true;
+                    } else {
+                        //new one for owner of the settings.
+                        final Dimension d = new Dimension(thumbMetaData.getSizeX(),
+                                thumbMetaData.getSizeY());
+                        thumbMetaData = ctx.createThumbnailMetadata(pixels, d);
+                        _setMetadataVersion(thumbMetaData, inProgress);
+                        thumbMetaData = iUpdate.saveAndReturnObject(thumbMetaData);
+                        dirtyMetadata = false;
+                    }
+                } finally {
+                    try {
+                        applicationContext.publishMessage(new ContextMessage.Pop(this, groupContext));
+                    } catch (Throwable t) {
+                        final String errorMessage = "could not publish context change pop";
+                        log.error(errorMessage, t);
+                        throw new InternalException(errorMessage + ": " + t);
+                    }
+                }
+            }
+            return thumbMetaData;
+        } finally {
+            s1.stop();
         }
     }
 
@@ -1045,8 +1078,7 @@ public class ThumbnailBean extends AbstractLevel2Service
     /*
      * (non-Javadoc)
      *
-     * @see ome.api.ThumbnailStore#getThumbnail(ome.model.core.Pixels,
-     *      ome.model.display.RenderingDef, java.lang.Integer,
+     * @see ome.api.ThumbnailStore#getThumbnail(java.lang.Integer,
      *      java.lang.Integer)
      */
     @RolesAllowed("user")
@@ -1066,6 +1098,34 @@ public class ThumbnailBean extends AbstractLevel2Service
         } catch (Throwable t) {
             value = handleNoThumbnail(t, dimensions);
         }
+        iQuery.clear();//see #11072
+        return value;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see ome.api.ThumbnailStore#getThumbnailWithoutDefault(java.lang.Integer,
+     *      java.lang.Integer)
+     */
+    @RolesAllowed("user")
+    @Transactional(readOnly = false)
+    public byte[] getThumbnailWithoutDefault(Integer sizeX, Integer sizeY) {
+        errorIfNullPixelsAndRenderingDef();
+        Dimension dimensions = sanityCheckThumbnailSizes(sizeX, sizeY);
+        Set<Long> pixelsIds = Collections.singleton(pixelsId);
+        ctx.loadAndPrepareMetadata(pixelsIds, dimensions);
+
+        // If this comes back null, don't have a thumbnail yet
+        thumbnailMetadata = ctx.getMetadataSimple(pixelsId);
+        if (thumbnailMetadata == null) {
+            // We don't have a thumbnail to load, lets try to create it
+            // and then return it
+            thumbnailMetadata = ctx.createThumbnailMetadata(pixels, dimensions);
+        }
+
+        byte[] value = retrieveThumbnail(thumbnailMetadata);
+        // I don't really know why this is here, no iquery calls being that I can see...
         iQuery.clear();//see #11072
         return value;
     }
@@ -1159,6 +1219,83 @@ public class ThumbnailBean extends AbstractLevel2Service
         }
     }
 
+    /**
+     * A simple way to create the thumbnail or retrieve it from cache.
+     *
+     * @return Thumbnail bytes.
+     */
+    private byte[] retrieveThumbnail(Thumbnail thumbMetaData) throws ResourceError {
+        final long pixelsId = thumbMetaData.getPixels().getId();
+        try {
+            if (ctx.isThumbnailCached(pixelsId)) {
+                // If the thumbnail is not dirty, belongs to the user and is on disk
+                // try to load it.
+                try {
+                    return ioService.getThumbnail(thumbMetaData);
+                } catch (IOException e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Cache miss, thumbnail missing or out of date.");
+                    }
+                }
+            }
+        } catch (ResourceError e) {
+            //Thumbnail cannot create one
+            try {
+                BufferedImage image = createScaledImage(null, null);
+                if (image == null) {
+                    return new byte[0];
+                }
+                return convertThumbnailToBytes(image, false);
+            } catch (IOException e1) {
+                throw new ResourceError(e1.getMessage());
+            }
+        }
+
+        thumbnailMetadata = _createThumbnail(thumbMetaData);
+        BufferedImage image = createScaledImage(null, null);
+        if (image == null) {
+            // This will return null if a thumbnail is blocked waiting on import completion
+            return new byte[0];
+        }
+
+        // If we get here we can assume the thumbnail just needs created
+        // and saved to disk
+        if (thumbnailMetadata.getId() == null) {
+            try {
+                return convertThumbnailToBytes(image, false);
+            } catch (IOException e) {
+                throw new ResourceError(e.getMessage());
+            }
+        }
+        try {
+            compressThumbnailToDisk(thumbnailMetadata, image, false);
+            //Saving of thumbnailMetadata already happened in _createThumbnail
+            //if owner != settings but not for owner == settings
+            //This could be moved to _createThumbnail
+            if (thumbnailMetadata.getDetails().getOwner().getId().equals(
+                 settings.getDetails().getOwner().getId())) {
+                iUpdate.saveObject(thumbnailMetadata);
+            }
+        } catch (ReadOnlyGroupSecurityViolation | IOException e) {
+            String msg = "Thumbnail could not be written to disk. Returning without caching";
+            log.warn(msg, e);
+            try {
+                return convertThumbnailToBytes(image, false);
+            } catch (IOException e1) {
+                throw new ResourceError(e1.getMessage());
+            }
+        }
+
+        // If we get here the compressThumbnailToDisk method above succeeded and
+        // we can load the thumbnail from disk
+        try {
+            return ioService.getThumbnail(thumbnailMetadata);
+        } catch (IOException e) {
+            log.error("Could not obtain thumbnail", e);
+            throw new ResourceError(e.getMessage());
+        }
+    }
+
     /*
      * (non-Javadoc)
      *
@@ -1228,15 +1365,14 @@ public class ThumbnailBean extends AbstractLevel2Service
         }
 
         BufferedImage image = createScaledImage(theZ, theT);
+        if (image == null) {
+            image = new BufferedImage(local.getSizeX(), local.getSizeY(),
+                    BufferedImage.TYPE_INT_RGB);
+        }
+
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         try {
-            if (inProgress) {
-                compressInProgressImageToStream(local, byteStream);
-            } else {
-                compressionService.compressToStream(image, byteStream);
-            }
-            byte[] thumbnail = byteStream.toByteArray();
-            return thumbnail;
+            return convertThumbnailToBytes(image, inProgress);
         } catch (IOException e) {
             log.error("Could not obtain thumbnail direct.", e);
             throw new ResourceError(e.getMessage());
@@ -1265,7 +1401,7 @@ public class ThumbnailBean extends AbstractLevel2Service
         return value;
     }
 
-    /** Actually does the work specified by {@link getThumbnailByLongestSideDirect()}.*/
+    /** Actually does the work specified by {@code getThumbnailByLongestSideDirect}.*/
     private byte[] _getThumbnailByLongestSideDirect(Integer size, Integer theZ,
             Integer theT, boolean rewriteMetadata)
     {
@@ -1296,7 +1432,9 @@ public class ThumbnailBean extends AbstractLevel2Service
         return value;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     *
      * @see ome.api.ThumbnailStore#getThumbnailForSectionByLongestSideDirect(int, int, java.lang.Integer)
      */
     @RolesAllowed("user")
@@ -1356,7 +1494,7 @@ public class ThumbnailBean extends AbstractLevel2Service
         iUpdate.flush();
     }
 
-    /** Actually does the work specified by {@link resetDefaults()}.*/
+    /** Actually does the work specified by {@code resetDefaults}.*/
     private void _resetDefaults()
     {
         // Ensure that setPixelsId() has been called first.

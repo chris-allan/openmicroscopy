@@ -54,6 +54,7 @@ from omero import ApiUsageException
 from omero.util.decorators import timeit, TimeIt
 from omeroweb.http import HttpJavascriptResponse, \
     HttpJavascriptResponseServerError
+from omeroweb.connector import Server
 
 import glob
 
@@ -2252,6 +2253,9 @@ def full_viewer(request, iid, conn=None, **kwargs):
     @return:            html page of image and metadata
     """
 
+    server_id = request.session['connector'].server_id
+    server_name = Server.get(server_id).server
+
     rid = getImgDetailsFromReq(request)
     server_settings = request.session.get('server_settings', {}) \
                                      .get('viewer', {})
@@ -2263,6 +2267,29 @@ def full_viewer(request, iid, conn=None, **kwargs):
         if image is None:
             logger.debug("(a)Image %s not found..." % (str(iid)))
             raise Http404
+
+        opengraph = None
+        twitter = None
+        image_preview = None
+        page_url = None
+
+        if hasattr(settings, 'SHARING_OPENGRAPH'):
+            opengraph = settings.SHARING_OPENGRAPH.get(server_name)
+            logger.debug('Open Graph enabled: %s', opengraph)
+
+        if hasattr(settings, 'SHARING_TWITTER'):
+            twitter = settings.SHARING_TWITTER.get(server_name)
+            logger.debug('Twitter enabled: %s', twitter)
+
+        if opengraph or twitter:
+            urlargs = {'iid': iid}
+            prefix = kwargs.get(
+                'thumbprefix', 'webgateway.views.render_thumbnail')
+            image_preview = request.build_absolute_uri(
+                reverse(prefix, kwargs=urlargs))
+            page_url = request.build_absolute_uri(
+                reverse('webgateway.views.full_viewer', kwargs=urlargs))
+
         d = {'blitzcon': conn,
              'image': image,
              'opts': rid,
@@ -2273,6 +2300,11 @@ def full_viewer(request, iid, conn=None, **kwargs):
              'viewport_server': kwargs.get(
                  # remove any trailing slash
                  'viewport_server', reverse('webgateway')).rstrip('/'),
+
+             'opengraph': opengraph,
+             'twitter': twitter,
+             'image_preview': image_preview,
+             'page_url': page_url,
 
              'object': 'image:%i' % int(iid)}
 
@@ -2412,9 +2444,11 @@ def archived_files(request, iid=None, conn=None, **kwargs):
     wellIds = request.GET.getlist('well')
     if iid is None:
         if len(imgIds) == 0 and len(wellIds) == 0:
-            return HttpResponseServerError(
+            rsp = ConnCleaningHttpResponse(StringIO(
                 "No images or wells specified in request."
-                " Use ?image=123 or ?well=123")
+                " Use ?image=123 or ?well=123"), status=400)
+            rsp.conn = conn
+            return rsp
     else:
         imgIds = [iid]
 
@@ -2431,17 +2465,20 @@ def archived_files(request, iid=None, conn=None, **kwargs):
         for w in wells:
             images.append(w.getWellSample(index).image())
     if len(images) == 0:
-        logger.debug(
-            "Cannot download archived file becuase Images not found.")
-        return HttpResponseServerError(
-            "Cannot download archived file because Images not found (ids:"
-            " %s)." % (imgIds))
+        message = 'Cannot download archived file because Images not ' \
+            'found (ids: %s)' % (imgIds)
+        logger.debug(message)
+        rsp = ConnCleaningHttpResponse(StringIO(message), status=404)
+        rsp.conn = conn
+        return rsp
 
     # Test permissions on images and weels
     for ob in (wells):
         if hasattr(ob, 'canDownload'):
             if not ob.canDownload():
-                raise Http404
+                rsp = ConnCleaningHttpResponse(status=404)
+                rsp.conn = conn
+                return rsp
 
     for ob in (images):
         well = None
@@ -2450,12 +2487,15 @@ def archived_files(request, iid=None, conn=None, **kwargs):
         except:
             if hasattr(ob, 'canDownload'):
                 if not ob.canDownload():
-                    raise Http404
+                    rsp = ConnCleaningHttpResponse(status=404)
+                    rsp.conn = conn
         else:
             if well and isinstance(well, omero.gateway.WellWrapper):
                 if hasattr(well, 'canDownload'):
                     if not well.canDownload():
-                        raise Http404
+                        rsp = ConnCleaningHttpResponse(status=404)
+                        rsp.conn = conn
+                        return rsp
 
     # make list of all files, removing duplicates
     fileMap = {}
@@ -2465,9 +2505,12 @@ def archived_files(request, iid=None, conn=None, **kwargs):
     files = fileMap.values()
 
     if len(files) == 0:
-        logger.debug("Tried downloading archived files from image with no"
-                     " files archived.")
-        return HttpResponseServerError("This image has no Archived Files.")
+        message = 'Tried downloading archived files from image with no' \
+            ' files archived.'
+        logger.debug(message)
+        rsp = ConnCleaningHttpResponse(message, status=404)
+        rsp.conn = conn
+        return rsp
 
     if len(files) == 1:
         orig_file = files[0]
@@ -2496,10 +2539,11 @@ def archived_files(request, iid=None, conn=None, **kwargs):
             temp.seek(0)
         except Exception:
             temp.close()
-            stack = traceback.format_exc()
-            logger.error(stack)
-            return HttpResponseServerError(
-                "Cannot download file (id:%s).\n%s" % (iid, stack))
+            message = 'Cannot download file (id:%s)' % (iid)
+            logger.error(message, exc_info=True)
+            rsp = ConnCleaningHttpResponse(StringIO(message), status=500)
+            rsp.conn = conn
+            return rsp
 
     rsp['Content-Type'] = 'application/force-download'
     return rsp
