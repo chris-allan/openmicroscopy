@@ -407,8 +407,6 @@
                         if ($("#bulk_annotations_table").is(":empty")) {
                             loadBulkAnnotations(screenQuery, query, showBulkAnnTooltip);
                             loadBulkAnnotations(plateQuery, query, showBulkAnnTooltip);
-                            loadBulkAnnotations(screenQuery, query2, showBulkAnnTooltip);
-                            loadBulkAnnotations(plateQuery, query2, showBulkAnnTooltip);
                             {% if manager.image %}
                                 loadBulkAnnotations(projectQuery, query, showBulkAnnTooltip);
                                 loadBulkAnnotations(datasetQuery, query, showBulkAnnTooltip);
