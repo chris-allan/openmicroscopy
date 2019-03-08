@@ -44,6 +44,14 @@ public class FileBuffer extends AbstractBuffer {
     }
 
     /**
+     * Retrieves the current file mode
+     * @return See above
+     */
+    public String getMode() {
+        return mode;
+    }
+
+    /**
      * Closes the buffer, cleaning up file state.
      * 
      * @throws IOException
